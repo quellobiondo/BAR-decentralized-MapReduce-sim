@@ -16,6 +16,9 @@
  along with MRSG.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "scheduling.h" // get_task_type
+#include "common.h"
+
+XBT_LOG_EXTERNAL_DEFAULT_CATEGORY(msg_test); // @suppress("Unused variable declaration in file scope")
 
 /**
  * @brief  Chooses a map or reduce task and send it to a worker.
@@ -40,8 +43,10 @@ size_t default_scheduler_f(enum phase_e phase, size_t wid) {
  * @brief  Choose a map task, and send it to a worker.
  * @param  wid  Worker id.
  * @return tid  Assigned Task Id
+ *
+ * TODO PUSH as much stuff as you can on the platform, and leave just the scheduling algo
  */
-size_t choose_default_map_task(size_t wid) {
+size_t choose_default_map_task(size_t wid /*, TODO list of tasks that need to be executed*/) {
 	size_t chunk;
 	size_t tid = NONE;
 	enum task_type_e task_type, best_task_type = NO_TASK;
@@ -57,16 +62,17 @@ size_t choose_default_map_task(size_t wid) {
 	 * Return the first local chunk in order of chunk id
 	 * or the second speculative task if it is remote, or speculative (with local speculative preferred to remote spec.)
 	 * */
-
-	//TODO check the speculative execution mechanism
 	for (chunk = 0; chunk < config.chunk_count; chunk++) {
+		//check if the task have already been executed by this node
+		if(job.task_list[MAP][chunk][wid] != NULL) continue;
+
 		task_type = get_task_type(MAP, chunk, wid);
 
 		if (task_type == LOCAL) {
 			tid = chunk;
 			break;
 		} else if (task_type == REMOTE
-				|| (job.task_instances[MAP][chunk] < MAX_SPECULATIVE_COPIES && task_type < best_task_type)){
+				|| (task_type < best_task_type && job.task_instances[MAP][tid] < MAX_SPECULATIVE_COPIES)){
 			best_task_type = task_type;
 			tid = chunk;
 		}

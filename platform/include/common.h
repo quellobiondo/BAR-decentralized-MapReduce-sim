@@ -51,10 +51,10 @@ along with MRSG.  If not, see <http://www.gnu.org/licenses/>. */
 /** @brief  Possible task status. */
 enum task_status_e {
     /* The initial status must be the first enum. */
-    T_STATUS_PENDING,
-    T_STATUS_TIP,
-    T_STATUS_TIP_SLOW,
-    T_STATUS_DONE
+    T_STATUS_PENDING, // waiting
+    T_STATUS_TIP,     // asked execution
+    T_STATUS_TIP_SLOW,// slow, to be scheduled for speculative tasks
+    T_STATUS_DONE     // done
 };
 
 enum task_type_e {
@@ -94,10 +94,10 @@ struct config_s {
 struct job_s {
     int           finished;
     int           tasks_pending[2];
-    int*          task_instances[2];
-    int*          task_status[2];
-    msg_task_t**  task_list[2];
-    // TODO add size of task_list nodes associated with it
+    int*          task_instances[2]; //[phase][task_id] -> running tasks
+    int*          task_confirmations[2]; //[phase][task_id] -> tasks that completed this task with the same result
+    int*          task_status[2]; //[phase][task_id] -> pending, running, timeout, completed
+    msg_task_t**  task_list[2];//[phase][task_id][worker id] -> collect the task descriptions for each task assigned to some node
     size_t**      map_output;
     heartbeat_t   heartbeats;
 } job;

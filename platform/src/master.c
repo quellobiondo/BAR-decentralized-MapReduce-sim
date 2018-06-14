@@ -37,6 +37,8 @@ static void send_task(enum phase_e phase, size_t tid, size_t data_src,
 		size_t wid);
 char* task_type_string(enum task_type_e task_type);
 static void finish_all_task_copies(task_info_t ti);
+static int enough_result_confirmation(task_info_t ti);
+static int number_of_task_replicas();
 
 /** @brief  Main master function. */
 int master(int argc, char* argv[]) {
@@ -82,22 +84,26 @@ int master(int argc, char* argv[]) {
 			} else if (message_is(msg, SMS_TASK_DONE)) {
 				ti = (task_info_t) MSG_task_get_data(msg);
 
-				// mark that task as done and finish everything
-				// TODO change the condition to be BFT (we don't simply wait for the first proposal) but f+1 with the same value
+				// increment result confirmations
+				job.task_confirmations[ti->phase][ti->id]++;
 
-				if (job.task_status[ti->phase][ti->id] != T_STATUS_DONE) {
-					job.task_status[ti->phase][ti->id] = T_STATUS_DONE;
+				if (enough_result_confirmation(ti)){
+					// mark that task as done and finish everything
+					// task finished, clean up and communicate
+					if (job.task_status[ti->phase][ti->id] != T_STATUS_DONE) {
+						job.task_status[ti->phase][ti->id] = T_STATUS_DONE;
 
-					finish_all_task_copies(ti); // pre-emption
-					job.tasks_pending[ti->phase]--;
-					if (job.tasks_pending[ti->phase] <= 0) {
-						XBT_INFO(" ");
-						XBT_INFO("%s PHASE DONE",
-								(ti->phase == MAP ? "MAP" : "REDUCE"));
-						XBT_INFO(" ");
+						finish_all_task_copies(ti); // pre-emption
+						job.tasks_pending[ti->phase]--;
+						if (job.tasks_pending[ti->phase] <= 0) {
+							XBT_INFO(" ");
+							XBT_INFO("%s PHASE DONE",
+									(ti->phase == MAP ? "MAP" : "REDUCE"));
+							XBT_INFO(" ");
+						}
 					}
+					xbt_free_ref(&ti);
 				}
-				xbt_free_ref(&ti);
 			}
 			MSG_task_destroy(msg);
 		}
@@ -176,6 +182,34 @@ static int is_straggler(msg_host_t worker) {
 	return 0;
 }
 
+/*
+ *
+ * BYZANTINE PARAMETERS SECTION
+ *
+ */
+
+/**
+ * @brief Tell if we have enough replicas of the ti result to be sure that we are BFT
+ *
+ * Other strategies are possible, like replication to be fault-tolerant
+ */
+static int enough_result_confirmation(task_info_t ti){
+	int threshold_BFT = config.byzantine + 1;
+	return min(config.number_of_workers, threshold_BFT) <= job.task_confirmations[ti->phase][ti->id];
+}
+
+/*
+ * Tell how many replicas do you want for every task
+ * The replicas are considered as different nodes
+ * The replicas are not to solve the stragglers (mainly)
+ *
+ * Improvement idea: consider also the failures like in MOON?
+ */
+static int number_of_task_replicas(){
+	int necessary_replicas_to_be_BFT = 2*config.byzantine + 1;
+	return min(config.number_of_workers, necessary_replicas_to_be_BFT);
+}
+
 /**
  * @brief  Returns for how long a task is running.
  * @param  task  The task to be probed.
@@ -199,6 +233,7 @@ static void set_speculative_tasks(msg_host_t worker) {
 	size_t tid;
 	size_t wid;
 	task_info_t ti;
+	size_t first_non_null;
 
 	wid = get_worker_id(worker);
 
@@ -210,17 +245,24 @@ static void set_speculative_tasks(msg_host_t worker) {
 		// if the straggler is currently executing some MAP task
 		for (tid = 0; tid < config.amount_of_tasks[MAP]; tid++) {
 
-			if (job.task_list[MAP][tid][0] != NULL) {
+			//check if there is at least one task assigned
+			//TODO CHANGE POLICY, SHOULDN'T BE THE FIRST NON NULL, BUT? THE OLDEST ONE?
+			for(first_non_null = 0;
+				job.task_list[MAP][tid][first_non_null] != NULL ||
+						first_non_null < config.number_of_workers;
+				first_non_null++);
+
+			if (job.task_list[MAP][tid][first_non_null] != NULL) {
 
 				/*
 				 * Get the information of the first node that is working on the task
 				 * So, not the straggler, but in general we check if a timeout occurred in one of the many
 				 * This works, but ideally we can assign immediately two nodes to execute speculatively the same task just beacause we checked that the old one is still slow...
 				 */
-				ti = (task_info_t) MSG_task_get_data(job.task_list[MAP][tid][0]);
+				ti = (task_info_t) MSG_task_get_data(job.task_list[MAP][tid][first_non_null]);
 
 				// TODO in the future here we could apply some smarter strategy...
-				if (ti->wid == wid && task_time_elapsed(job.task_list[MAP][tid][0]) > TRIGGER_TIMEOUT_SPECULATIVE_MAP) {
+				if (ti->wid == wid && task_time_elapsed(job.task_list[MAP][tid][first_non_null]) > TRIGGER_TIMEOUT_SPECULATIVE_MAP) {
 					job.task_status[MAP][tid] = T_STATUS_TIP_SLOW;
 				}
 			}
@@ -233,10 +275,18 @@ static void set_speculative_tasks(msg_host_t worker) {
 
 	if (job.heartbeats[wid].slots_av[REDUCE] < config.slots[REDUCE]) {
 		for (tid = 0; tid < config.amount_of_tasks[REDUCE]; tid++) {
-			if (job.task_list[REDUCE][tid][0] != NULL) {
-				ti = (task_info_t) MSG_task_get_data(job.task_list[REDUCE][tid][0]);
 
-				if (ti->wid == wid && task_time_elapsed(job.task_list[REDUCE][tid][0]) > TRIGGER_TIMEOUT_SPECULATIVE_REDUCE) {
+			//check if there is at least one task assigned
+			//TODO CHANGE POLICY, SHOULDN'T BE THE FIRST NON NULL, BUT? THE OLDEST ONE?
+			for(first_non_null = 0;
+				job.task_list[REDUCE][tid][first_non_null] != NULL ||
+						first_non_null < config.number_of_workers;
+				first_non_null++);
+
+			if (job.task_list[REDUCE][tid][first_non_null] != NULL) {
+				ti = (task_info_t) MSG_task_get_data(job.task_list[REDUCE][tid][first_non_null]);
+
+				if (ti->wid == wid && task_time_elapsed(job.task_list[REDUCE][tid][first_non_null]) > TRIGGER_TIMEOUT_SPECULATIVE_REDUCE) {
 					job.task_status[REDUCE][tid] = T_STATUS_TIP_SLOW;
 				}
 			}
@@ -245,6 +295,7 @@ static void set_speculative_tasks(msg_host_t worker) {
 }
 
 static void send_scheduler_task(enum phase_e phase, size_t wid) {
+	// it's the user scheduler that decides which task to execute
 	size_t tid = user.scheduler_f(phase, wid);
 
 	if (tid == NONE) {
@@ -291,10 +342,16 @@ enum task_type_e get_task_type(enum phase_e phase, size_t tid, size_t wid) {
 		case T_STATUS_TIP_SLOW:
 			return chunk_owner[tid][wid] ? LOCAL_SPEC : REMOTE_SPEC;
 
-		default:
+		case T_STATUS_TIP:
 			return NO_TASK;
-		}
 
+		case T_STATUS_DONE:
+			return NO_TASK;
+
+		default:
+			xbt_die("Non treated task status: %d", task_status);
+		}
+		break;
 	case REDUCE:
 		switch (task_status) {
 		case T_STATUS_PENDING:
@@ -303,10 +360,16 @@ enum task_type_e get_task_type(enum phase_e phase, size_t tid, size_t wid) {
 		case T_STATUS_TIP_SLOW:
 			return SPECULATIVE;
 
-		default:
+		case T_STATUS_TIP:
 			return NO_TASK;
-		}
 
+		case T_STATUS_DONE:
+			return NO_TASK;
+
+		default:
+			xbt_die("Non treated task status: %d", task_status);
+		}
+		break;
 	default:
 		return NO_TASK;
 	}
@@ -322,10 +385,15 @@ enum task_type_e get_task_type(enum phase_e phase, size_t tid, size_t wid) {
 static void send_task(enum phase_e phase, size_t tid, size_t data_src,
 		size_t wid) {
 	char mailbox[MAILBOX_ALIAS_SIZE];
-	int i;
 	double cpu_required = 0.0;
 	msg_task_t task = NULL;
 	task_info_t task_info;
+
+	// CHECK THAT WE ARE NOT REASSIGNING A JOB TO THE SAME NODE
+	if(job.task_list[phase][tid][wid] != NULL)
+		xbt_die("The worker %lu has already been assigned to the task %lu", wid, tid);
+
+	job.task_list[phase][tid][wid] = task;
 
 	cpu_required = user.task_cost_f(phase, tid, wid);
 
@@ -342,21 +410,26 @@ static void send_task(enum phase_e phase, size_t tid, size_t data_src,
 	// for tracing purposes...
 	MSG_task_set_category(task, (phase == MAP ? "MAP" : "REDUCE"));
 
-	if (job.task_status[phase][tid] != T_STATUS_TIP_SLOW)
-		job.task_status[phase][tid] = T_STATUS_TIP;
+	job.task_instances[phase][tid]++;
+
+	if (job.task_status[phase][tid] != T_STATUS_TIP_SLOW){
+
+		if(job.task_instances[phase][tid] >= number_of_task_replicas())
+			job.task_status[phase][tid] = T_STATUS_TIP;
+	}
 
 	job.heartbeats[wid].slots_av[phase]--; //okay, it just tell that there is a slot that is less available
 
 	// FIXME I just have to add to the list, it shouldn't explode here! (what if we have already MAX_SPECULATIVE_COPIES)?
 	// Plus, this would mean that we can have running tasks that will not end using the kill all tasks function.
-	for (i = 0; i < MAX_SPECULATIVE_COPIES; i++) {
-		if (job.task_list[phase][tid][i] == NULL) {
-			job.task_list[phase][tid][i] = task;
-			break;
-		}
-	}
+//	for (i = 0; i < MAX_SPECULATIVE_COPIES; i++) {
+//		if (job.task_list[phase][tid][i] == NULL) {
+//			job.task_list[phase][tid][i] = task;
+//			break;
+//		}
+//	}
 
-	fprintf(tasks_log, "%d_%zu_%d,%s,%zu,%.3f,START,\n", phase, tid, i,
+	fprintf(tasks_log, "%d_%zu_%lu,%s,%zu,%.3f,START,\n", phase, tid, wid,
 			(phase == MAP ? "MAP" : "REDUCE"), wid, MSG_get_clock());
 
 #ifdef VERBOSE
@@ -365,8 +438,6 @@ static void send_task(enum phase_e phase, size_t tid, size_t data_src,
 
 	sprintf(mailbox, TASKTRACKER_MAILBOX, wid);
 	xbt_assert(MSG_task_send(task, mailbox) == MSG_OK, "ERROR SENDING MESSAGE");
-
-	job.task_instances[phase][tid]++;
 }
 
 static void update_stats(enum task_type_e task_type) {
@@ -426,10 +497,10 @@ static void finish_all_task_copies(task_info_t ti) {
 	int phase = ti->phase;
 	size_t tid = ti->id;
 
-	//TODO replace MAX_SPECULATIVE_COPIES with the real number of tasks that are executing the same task
-	for (i = 0; i < MAX_SPECULATIVE_COPIES; i++) {
+	for (i = 0; i < config.number_of_workers; i++) {
 		if (job.task_list[phase][tid][i] != NULL) {
 			MSG_task_cancel(job.task_list[phase][tid][i]);
+
 			//FIXME: MSG_task_destroy (job.task_list[phase][tid][i]);
 			job.task_list[phase][tid][i] = NULL;
 			fprintf(tasks_log, "%d_%zu_%d,%s,%zu,%.3f,END,%.3f\n", ti->phase,

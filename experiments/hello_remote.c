@@ -1,5 +1,6 @@
 #include <mrsg.h>
 #include <scheduling.h>
+#include <common.h>
 
 size_t choose_remote_map_task(size_t wid);
 
@@ -69,11 +70,10 @@ size_t choose_remote_map_task(size_t wid) {
 	for (chunk = 0; chunk < config.chunk_count; chunk++) {
 		task_type = get_task_type(MAP, chunk, wid);
 
-		// LOL -> Very smart decision here
 		if (task_type == REMOTE) {
 			tid = chunk;
 			break;
-		} else if (task_type == LOCAL || (job.task_instances[MAP][chunk] < 2 // Speculative
+		} else if (task_type == LOCAL || (job.task_instances[MAP][chunk] < MAX_SPECULATIVE_COPIES // Speculative
 		&& task_type < best_task_type))   // tasks.
 				{
 			best_task_type = task_type;
