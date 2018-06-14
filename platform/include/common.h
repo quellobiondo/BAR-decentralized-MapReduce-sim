@@ -38,6 +38,8 @@ along with MRSG.  If not, see <http://www.gnu.org/licenses/>. */
 
 #define NONE (-1)
 #define MAX_SPECULATIVE_COPIES 3
+#define TRIGGER_TIMEOUT_SPECULATIVE_MAP 60
+#define TRIGGER_TIMEOUT_SPECULATIVE_REDUCE 60
 
 /* Mailbox related. */
 #define MAILBOX_ALIAS_SIZE 256
@@ -65,7 +67,9 @@ enum task_type_e {
     NO_TASK
 };
 
-/** @brief  Information sent by the workers with every heartbeat. */
+/** @brief  Information sent by the workers with every heartbeat.
+ *  Slots available?
+ *  */
 struct heartbeat_s {
     int  slots_av[2];
 };
@@ -83,6 +87,7 @@ struct config_s {
     int            number_of_workers;
     int            slots[2];
     int            initialized;
+    int            byzantine;
     msg_host_t*    workers;
 } config;
 
@@ -92,6 +97,7 @@ struct job_s {
     int*          task_instances[2];
     int*          task_status[2];
     msg_task_t**  task_list[2];
+    // TODO add size of task_list nodes associated with it
     size_t**      map_output;
     heartbeat_t   heartbeats;
 } job;

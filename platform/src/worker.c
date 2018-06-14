@@ -67,6 +67,8 @@ int worker(int argc, char* argv[]) {
  */
 static void heartbeat(void) {
 	while (!job.finished) {
+
+		// to replace with BAR fault tolerant mechanism
 		send_sms(SMS_HEARTBEAT, MASTER_MAILBOX);
 		MSG_process_sleep(config.heartbeat_interval);
 	}
@@ -78,20 +80,20 @@ static void heartbeat(void) {
 static int listen(int argc, char* argv[]) {
 	char mailbox[MAILBOX_ALIAS_SIZE];
 	msg_error_t status;
-	msg_host_t me;
-	msg_task_t msg = NULL;
+	msg_host_t localhost;
+	msg_task_t current_task = NULL;
 
-	me = MSG_host_self();
-	sprintf(mailbox, TASKTRACKER_MAILBOX, get_worker_id(me));
+	localhost = MSG_host_self();
+	sprintf(mailbox, TASKTRACKER_MAILBOX, get_worker_id(localhost));
 
 	while (!job.finished) {
-		msg = NULL;
-		status = receive(&msg, mailbox);
+		current_task = NULL;
+		status = receive(&current_task, mailbox);
 
-		if (status == MSG_OK && message_is(msg, SMS_TASK)) {
-			MSG_process_create("compute", compute, msg, me);
-		} else if (message_is(msg, SMS_FINISH)) {
-			MSG_task_destroy(msg);
+		if (status == MSG_OK && message_is(current_task, SMS_TASK)) {
+			MSG_process_create("compute", compute, current_task, localhost);
+		} else if (message_is(current_task, SMS_FINISH)) {
+			MSG_task_destroy(current_task);
 			break;
 		}
 	}
@@ -101,6 +103,8 @@ static int listen(int argc, char* argv[]) {
 
 /**
  * @brief  Process that computes a task.
+ *
+ * We assign to this function directly a single task to execute
  */
 static int compute(int argc, char* argv[]) {
 	msg_error_t status;
@@ -112,6 +116,9 @@ static int compute(int argc, char* argv[]) {
 	ti = (task_info_t) MSG_task_get_data(task);
 	ti->pid = MSG_process_self_PID();
 
+	/*
+	 * Obtain the data necessary for the computation
+	 * */
 	switch (ti->phase) {
 	case MAP:
 		get_chunk(ti);
@@ -122,25 +129,32 @@ static int compute(int argc, char* argv[]) {
 		break;
 	}
 
+	/*
+	 * Execution in case we didn't executed yet
+	 *
+	 * TODO: remove the check? We need f+1 checks
+	 */
 	if (job.task_status[ti->phase][ti->id] != T_STATUS_DONE) {
 
-
-		//TRY
-		//{
+		TRY{
 			status = MSG_task_execute(task);
 
 			if (ti->phase == MAP && status == MSG_OK)
 				update_map_output(MSG_host_self(), ti->id);
-		//}
-		//CATCH(e)
-		//{
-		//	xbt_assert(e.category == cancel_error, "%s", e.msg);
-		//	xbt_ex_free(e);
-		//}
+			}
+		CATCH(e){
+			xbt_assert(e.category == cancel_error, "%s", e.msg);
+			xbt_ex_free(e);
+		}
 	}
 
+	/*
+	 * How the heartbeats are incremented
+	 * What is slots_av?
+	 * */
 	job.heartbeats[ti->wid].slots_av[ti->phase]++;
 
+	// TODO: update, send just to the blockchain
 	if (!job.finished)
 		send(SMS_TASK_DONE, 0.0, 0.0, ti, MASTER_MAILBOX);
 
@@ -148,7 +162,7 @@ static int compute(int argc, char* argv[]) {
 }
 
 /**
- * @brief  Update the amount of data produced by a mapper.
+ * @brief  Update the amount of data produced by a mapper, that will need to be collected by the reduce task
  * @param  worker  The worker that finished a map task.
  * @param  mid     The ID of map task.
  */
@@ -158,36 +172,47 @@ static void update_map_output(msg_host_t worker, size_t mid) {
 
 	wid = get_worker_id(worker);
 
+	// for each reduce task we assign the amount of data produced by this map
+	// so we can say that they are like making an uniform distribution
+	// however, the function map_output_f takes the map id and the reduce id to compute another function, definible inside the experiment
 	for (rid = 0; rid < config.amount_of_tasks[REDUCE]; rid++)
 		job.map_output[wid][rid] += user.map_output_f(mid, rid);
 }
 
 /**
  * @brief  Get the chunk associated to a map task.
+ * 		   It just notify to the namenode that it needs a chuck and waits for a reply...
  * @param  ti  The task information.
  */
 static void get_chunk(task_info_t ti) {
 	char mailbox[MAILBOX_ALIAS_SIZE];
 	msg_error_t status;
-	msg_task_t data = NULL;
+	msg_task_t task = NULL;
 	size_t my_id;
 
 	my_id = get_worker_id(MSG_host_self());
 
-	/* Request the chunk to the source node. */
+	/*
+	 * Here the model have to be changed, why?
+	 * The idea was that in general I have to require the data-chunk to just one simple node... and then the recovery mechanism in case of fault.
+	 * */
+
+	/* Request the chunk to the source node. if it's not me */
 	if (ti->src != my_id) {
 		sprintf(mailbox, DATANODE_MAILBOX, ti->src);
 		status = send_sms(SMS_GET_CHUNK, mailbox);
 		if (status == MSG_OK) {
 			sprintf(mailbox, TASK_MAILBOX, my_id, MSG_process_self_PID());
-			status = receive(&data, mailbox);
+			status = receive(&task, mailbox);
 			if (status == MSG_OK)
-				MSG_task_destroy(data);
+				MSG_task_destroy(task);
 		}
 	}
 }
 
 /**
+ * SHUFFLE PHASE
+ *
  * @brief  Copy the itermediary pairs for a reduce task.
  * @param  ti  The task information.
  */
@@ -212,21 +237,27 @@ static void get_map_output(task_info_t ti) {
 
 	while (total_copied < must_copy) {
 		for (wid = 0; wid < config.number_of_workers; wid++) {
+
+			// why is this done like this
 			if (job.task_status[REDUCE][ti->id] == T_STATUS_DONE) {
 				xbt_free_ref(&data_copied);
 				return;
 			}
 
+			// if this worker (wid) has data that I need and I didn't downloaded yet, I'll do it right now
+			// TODO: we have to modify the way in which we take the data from the nodes, there isn't always a 1:1 correspondance
 			if (job.map_output[wid][ti->id] > data_copied[wid]) {
+
 				sprintf(mailbox, DATANODE_MAILBOX, wid);
 				status = send(SMS_GET_INTER_PAIRS, 0.0, 0.0, ti, mailbox);
 				if (status == MSG_OK) {
+					data = NULL;
+
 					sprintf(mailbox, TASK_MAILBOX, my_id,
 							MSG_process_self_PID());
-					data = NULL;
-					//TODO Set a timeout: reduce.copy.backoff
 					status = receive(&data, mailbox);
 					if (status == MSG_OK) {
+						// update the current situation
 						data_copied[wid] += MSG_task_get_data_size(data);
 						total_copied += MSG_task_get_data_size(data);
 						MSG_task_destroy(data);
