@@ -256,8 +256,8 @@ static void init_job(void) {
 	for (i = 0; i < config.amount_of_tasks[MAP]; i++)
 		job.task_list[MAP][i] = xbt_new0(msg_task_t, config.number_of_workers);
 
-	job.map_output = xbt_new(size_t*, config.number_of_workers);
-	for (i = 0; i < config.number_of_workers; i++)
+	job.map_output = xbt_new(size_t*, config.amount_of_tasks[MAP]);
+	for (i = 0; i < config.amount_of_tasks[MAP]; i++)
 		job.map_output[i] = xbt_new0(size_t, config.amount_of_tasks[REDUCE]);
 
 	/* Initialize reduce information. */
@@ -283,6 +283,8 @@ static void init_stats(void) {
 	stats.map_spec_r = 0;
 	stats.reduce_normal = 0;
 	stats.reduce_spec = 0;
+	stats.reduce_remote_map_result=0;
+	stats.reduce_local_map_result=0;
 }
 
 /**

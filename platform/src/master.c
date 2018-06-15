@@ -151,6 +151,8 @@ static void print_stats(void) {
 	XBT_INFO("total speculative maps: %d", stats.map_spec_l + stats.map_spec_r);
 	XBT_INFO("normal reduces: %d", stats.reduce_normal);
 	XBT_INFO("speculative reduces: %d", stats.reduce_spec);
+	XBT_INFO("reduces with local map-output fetch: %d", stats.reduce_local_map_result);
+	XBT_INFO("reduces with remote map-output fetch: %d", stats.reduce_remote_map_result);
 	XBT_INFO(" ");
 }
 

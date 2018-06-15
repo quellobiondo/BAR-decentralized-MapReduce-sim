@@ -24,7 +24,6 @@ XBT_LOG_EXTERNAL_DEFAULT_CATEGORY(msg_test); // @suppress("Unused variable decla
 static void heartbeat(void);
 static int listen(int argc, char* argv[]);
 static int compute(int argc, char* argv[]);
-static void update_map_output(msg_host_t worker, size_t mid);
 static void get_chunk(task_info_t ti);
 static void get_map_output(task_info_t ti);
 
@@ -140,7 +139,7 @@ static int compute(int argc, char* argv[]) {
 			status = MSG_task_execute(task);
 
 			if (ti->phase == MAP && status == MSG_OK)
-				update_map_output(MSG_host_self(), ti->id);
+				update_intermediate_result_owner(get_worker_id(MSG_host_self()), ti->id);
 			}
 		CATCH(e){
 			xbt_assert(e.category == cancel_error, "%s", e.msg);
@@ -159,24 +158,6 @@ static int compute(int argc, char* argv[]) {
 		send(SMS_TASK_DONE, 0.0, 0.0, ti, MASTER_MAILBOX);
 
 	return 0;
-}
-
-/**
- * @brief  Update the amount of data produced by a mapper, that will need to be collected by the reduce task
- * @param  worker  The worker that finished a map task.
- * @param  mid     The ID of map task.
- */
-static void update_map_output(msg_host_t worker, size_t mid) {
-	size_t rid;
-	size_t wid;
-
-	wid = get_worker_id(worker);
-
-	// for each reduce task we assign the amount of data produced by this map
-	// so we can say that they are like making an uniform distribution
-	// however, the function map_output_f takes the map id and the reduce id to compute another function, definible inside the experiment
-	for (rid = 0; rid < config.amount_of_tasks[REDUCE]; rid++)
-		job.map_output[wid][rid] += user.map_output_f(mid, rid);
 }
 
 /**
@@ -222,11 +203,12 @@ static void get_map_output(task_info_t ti) {
 	msg_task_t data = NULL;
 	size_t total_copied, must_copy;
 	size_t my_id;
-	size_t wid;
+	size_t other_worker;
+	size_t map_index;
 	size_t* data_copied;
 
 	my_id = get_worker_id(MSG_host_self());
-	data_copied = xbt_new0(size_t, config.number_of_workers);
+	data_copied = xbt_new0(size_t, config.amount_of_tasks[MAP]);
 	ti->map_output_copied = data_copied;
 	total_copied = 0;
 	must_copy = reduce_input_size(ti->id);
@@ -235,39 +217,51 @@ static void get_map_output(task_info_t ti) {
 	XBT_INFO ("INFO: start copy");
 #endif
 
-	while (total_copied < must_copy) {
-		for (wid = 0; wid < config.number_of_workers; wid++) {
+	// I have to copy all the intermediate MAP results for my key
+	for (map_index = 0; map_index < config.amount_of_tasks[MAP]; ) {
 
-			// why is this done like this
-			if (job.task_status[REDUCE][ti->id] == T_STATUS_DONE) {
-				xbt_free_ref(&data_copied);
-				return;
-			}
+		// why is this done like this
+		if (job.task_status[REDUCE][ti->id] == T_STATUS_DONE) {
+			xbt_free_ref(&data_copied);
+			return;
+		}
 
+		// check if I have it locally
+		if(map_output_owner[map_index][ti->id][my_id]){
+			data_copied[map_index] = user.map_output_f(map_index, ti->id);
+			total_copied += user.map_output_f(map_index, ti->id);
+			stats.reduce_local_map_result++;
+		}else{
+			//find someone else
 			// if this worker (wid) has data that I need and I didn't downloaded yet, I'll do it right now
 			// TODO: we have to modify the way in which we take the data from the nodes, there isn't always a 1:1 correspondance
-			if (job.map_output[wid][ti->id] > data_copied[wid]) {
+			other_worker = find_random_intermediate_result_owner(ti->id);
+			stats.reduce_remote_map_result++;
+			sprintf(mailbox, DATANODE_MAILBOX, other_worker);
+			status = send(SMS_GET_INTER_PAIRS, 0.0, 0.0, ti, mailbox);
+			if (status == MSG_OK) {
+				data = NULL;
 
-				sprintf(mailbox, DATANODE_MAILBOX, wid);
-				status = send(SMS_GET_INTER_PAIRS, 0.0, 0.0, ti, mailbox);
+				sprintf(mailbox, TASK_MAILBOX, my_id,
+						MSG_process_self_PID());
+				status = receive(&data, mailbox);
 				if (status == MSG_OK) {
-					data = NULL;
-
-					sprintf(mailbox, TASK_MAILBOX, my_id,
-							MSG_process_self_PID());
-					status = receive(&data, mailbox);
-					if (status == MSG_OK) {
-						// update the current situation
-						data_copied[wid] += MSG_task_get_data_size(data);
-						total_copied += MSG_task_get_data_size(data);
-						MSG_task_destroy(data);
-					}
+					// update the current situation
+					data_copied[map_index] += MSG_task_get_data_size(data);
+					total_copied += MSG_task_get_data_size(data);
+					MSG_task_destroy(data);
 				}
 			}
 		}
-		/* (Hadoop 0.20.2) mapred/ReduceTask.java:1979 */
-		MSG_process_sleep(5);
+
+		if(job.map_output[map_index][ti->id] <= data_copied[map_index]){
+			map_index++;
+		}
 	}
+
+	xbt_assert(total_copied >= must_copy);
+
+	XBT_INFO("Shuffle phase finished for %lu", my_id);
 
 #ifdef VERBOSE
 	XBT_INFO ("INFO: copy finished");

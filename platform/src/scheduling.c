@@ -47,7 +47,7 @@ size_t default_scheduler_f(enum phase_e phase, size_t wid) {
  * TODO PUSH as much stuff as you can on the platform, and leave just the scheduling algo
  */
 size_t choose_default_map_task(size_t wid /*, TODO list of tasks that need to be executed*/) {
-	size_t chunk;
+	size_t map_id;
 	size_t tid = NONE;
 	enum task_type_e task_type, best_task_type = NO_TASK;
 
@@ -62,19 +62,19 @@ size_t choose_default_map_task(size_t wid /*, TODO list of tasks that need to be
 	 * Return the first local chunk in order of chunk id
 	 * or the second speculative task if it is remote, or speculative (with local speculative preferred to remote spec.)
 	 * */
-	for (chunk = 0; chunk < config.chunk_count; chunk++) {
+	for (map_id = 0; map_id < config.chunk_count; map_id++) {
 		//check if the task have already been executed by this node
-		if(job.task_list[MAP][chunk][wid] != NULL) continue;
+		if(job.task_list[MAP][map_id][wid] != NULL) continue;
 
-		task_type = get_task_type(MAP, chunk, wid);
+		task_type = get_task_type(MAP, map_id, wid);
 
 		if (task_type == LOCAL) {
-			tid = chunk;
+			tid = map_id;
 			break;
 		} else if (task_type == REMOTE
 				|| (task_type < best_task_type && job.task_instances[MAP][tid] < MAX_SPECULATIVE_COPIES)){
 			best_task_type = task_type;
-			tid = chunk;
+			tid = map_id;
 		}
 	}
 

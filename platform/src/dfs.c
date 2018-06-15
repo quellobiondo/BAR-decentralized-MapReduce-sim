@@ -28,12 +28,21 @@ static void send_data(msg_task_t msg);
  * The assignement of chunk presence and nodes is made with a matrix.
  */
 void distribute_data(void) {
-	size_t chunk;
+	size_t chunk, map_task_index, reduce_task_index;
 
 	/* Allocate memory for the mapping matrix. */
 	chunk_owner = xbt_new(char*, config.chunk_count);
 	for (chunk = 0; chunk < config.chunk_count; chunk++) {
 		chunk_owner[chunk] = xbt_new0(char, config.number_of_workers);
+	}
+
+	/* Allocate memory for the Map Output matrix */
+	map_output_owner = xbt_new(char**, config.amount_of_tasks[MAP]);
+	for(map_task_index = 0; map_task_index < config.amount_of_tasks[MAP]; map_task_index++){
+		map_output_owner[map_task_index] = xbt_new(char*, config.amount_of_tasks[REDUCE]);
+		for(reduce_task_index = 0; reduce_task_index < config.amount_of_tasks[REDUCE]; reduce_task_index++){
+			map_output_owner[map_task_index][reduce_task_index] = xbt_new0(char, config.number_of_workers);
+		}
 	}
 
 	/* Call the distribution function. */
@@ -75,7 +84,7 @@ void default_dfs_f(char** dfs_matrix, size_t chunks, size_t workers,
  * Return one of the many chunk_owner, almost randomly
  * TODO Design a better algo...
  */
-size_t find_random_chunk_owner(int cid) {
+size_t find_random_chunk_owner(size_t cid) {
 	int replica;
 	size_t owner = NONE;
 	size_t wid;
@@ -93,9 +102,53 @@ size_t find_random_chunk_owner(int cid) {
 		}
 	}
 
-	xbt_assert(owner != NONE, "Aborted: chunk %d is missing.", cid);
+	xbt_assert(owner != NONE, "Aborted: chunk %lu is missing.", cid);
 
 	return owner;
+}
+
+/*
+ * Return a random node among the ones that have completed that key
+ */
+size_t find_random_intermediate_result_owner(size_t reduce_id){
+	int replica;
+	size_t owner = NONE;
+	size_t wid;
+	size_t mid;
+
+	replica = rand() % config.chunk_replicas;
+
+	for(mid = 0; mid < config.amount_of_tasks[MAP]; mid++){
+		for (wid = 0; wid < config.number_of_workers; wid++) {
+			if (map_output_owner[mid][reduce_id][wid]) {
+				owner = wid;
+
+				if (replica == 0)
+					break;
+				else
+					replica--;
+			}
+		}
+	}
+
+	xbt_assert(owner != NONE, "Aborted: no-one has the intermediate data for the key %lu.", reduce_id);
+
+	return owner;
+}
+
+void update_intermediate_result_owner(size_t map_id, size_t owner){
+	size_t rid;
+	// map_output_owner[query->map_id][query->reduce_id][query->query_sender_id] = 1;
+	// job.map_output[query->map_id][query->reduce_id] = query->data_copied;
+
+	// for each reduce task we assign the amount of data produced by this map
+	// so we can say that they are like making an uniform distribution
+	// however, the function map_output_f takes the map id and the reduce id to compute another function, definible inside the experiment
+	for (rid = 0; rid < config.amount_of_tasks[REDUCE]; rid++){
+		// job.map_output[mid][rid] += user.map_output_f(mid, rid);
+		job.map_output[map_id][rid] = user.map_output_f(map_id, rid);
+        map_output_owner[map_id][rid][owner] = job.map_output[map_id][rid] > 0 ? TRUE : FALSE;
+	}
 }
 
 int data_node(int argc, char* argv[]) {
@@ -139,8 +192,12 @@ static void send_data(msg_task_t msg) {
 	} else if (message_is(msg, SMS_GET_INTER_PAIRS)) {
 		ti = (task_info_t) MSG_task_get_data(msg);
 		// compute the amount of data that the reducer has already copied
-		data_size = job.map_output[my_id][ti->id]
-				- ti->map_output_copied[my_id];
+
+		// FIXME : global access to something that shouldn't be accessed like this
+		//data_size = job.map_output[my_id][ti->id]
+		//		- ti->map_output_copied[my_id];
+		data_size = job.map_output[my_id][ti->id];
+
 		MSG_task_dsend(MSG_task_create("DATA-IP", 0.0, data_size, NULL),
 				mailbox, NULL);
 	}

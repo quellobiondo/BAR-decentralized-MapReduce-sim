@@ -123,6 +123,8 @@ struct stats_s {
     int   map_spec_r;
     int   reduce_normal;
     int   reduce_spec;
+    int   reduce_local_map_result;
+    int   reduce_remote_map_result;
 } stats;
 
 struct user_s {
