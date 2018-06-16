@@ -1,4 +1,4 @@
-# PBFT-MR-sim
+# Simulation for the decentralized Map-Reduce in BAR environments 
 
 Structure
 - Platform -> simulation platform
