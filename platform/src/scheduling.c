@@ -48,14 +48,14 @@ size_t default_scheduler_f(enum phase_e phase, size_t wid) {
  */
 size_t choose_default_map_task(size_t wid /*, TODO list of tasks that need to be executed*/) {
 	size_t map_id;
-	size_t tid = NONE;
+	size_t selected_task_id = NONE;
 	enum task_type_e task_type, best_task_type = NO_TASK;
 
 	/*
 	 * If there are no pending MAP tasks return none.
 	 */
 	if (job.tasks_pending[MAP] <= 0)
-		return tid;
+		return NONE;
 
 	/* Look for a task for the worker.
 	 *
@@ -69,16 +69,16 @@ size_t choose_default_map_task(size_t wid /*, TODO list of tasks that need to be
 		task_type = get_task_type(MAP, map_id, wid);
 
 		if (task_type == LOCAL) {
-			tid = map_id;
+			selected_task_id = map_id;
 			break;
 		} else if (task_type == REMOTE
-				|| (task_type < best_task_type && job.task_instances[MAP][tid] < MAX_SPECULATIVE_COPIES)){
+				|| (task_type < best_task_type && job.task_instances[MAP][map_id] < MAX_SPECULATIVE_COPIES)){
 			best_task_type = task_type;
-			tid = map_id;
+			selected_task_id = map_id;
 		}
 	}
 
-	return tid;
+	return selected_task_id;
 }
 
 /**
@@ -87,8 +87,8 @@ size_t choose_default_map_task(size_t wid /*, TODO list of tasks that need to be
  * @return tid  Selected Task id.
  */
 size_t choose_default_reduce_task(size_t wid) {
-	size_t t;
-	size_t tid = NONE;
+	size_t reduce_id;
+	size_t selected_task_id = NONE;
 	enum task_type_e task_type, best_task_type = NO_TASK;
 
 	/*
@@ -98,28 +98,29 @@ size_t choose_default_reduce_task(size_t wid) {
 	 */
 	if (job.tasks_pending[REDUCE] <= 0
 			|| ((float) job.tasks_pending[MAP]) / config.amount_of_tasks[MAP] > 0.9)
-		return tid;
-
-	//TODO how to get infos on the data locality?
+		return NONE;
 
 	/*
 	 * Assign the job without notion of data locality, no optimization.
 	 * If no matches, then it assign a speculative task
 	 */
-	for (t = 0; t < config.amount_of_tasks[REDUCE]; t++) {
-		task_type = get_task_type(REDUCE, t, wid);
+	for (reduce_id = 0; reduce_id < config.amount_of_tasks[REDUCE]; reduce_id++) {
+		//check if the task have already been executed by this node
+		if(job.task_list[REDUCE][reduce_id][wid] != NULL) continue;
+
+		task_type = get_task_type(REDUCE, reduce_id, wid);
 
 		if (task_type == NORMAL) {
-			tid = t;
+			selected_task_id = reduce_id;
 			break;
 		} else if (task_type < best_task_type
-				&& job.task_instances[REDUCE][t] < MAX_SPECULATIVE_COPIES) {
+				&& job.task_instances[REDUCE][reduce_id] < MAX_SPECULATIVE_COPIES) {
 			best_task_type = task_type; // SPECULATIVE
-			tid = t;
+			selected_task_id = reduce_id;
 		}
 	}
 
-	return tid;
+	return selected_task_id;
 }
 
 // vim: set ts=8 sw=4:

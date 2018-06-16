@@ -394,8 +394,6 @@ static void send_task(enum phase_e phase, size_t tid, size_t data_src,
 	// for fault-tolerance we don't want to reassign a task to the same node
 	xbt_assert(job.task_list[phase][tid][wid] == NULL);
 
-	job.task_list[phase][tid][wid] = task;
-
 	cpu_required = user.task_cost_f(phase, tid, wid);
 
 	task_info = xbt_new(struct task_info_s, 1);
@@ -411,6 +409,7 @@ static void send_task(enum phase_e phase, size_t tid, size_t data_src,
 	// for tracing purposes...
 	MSG_task_set_category(task, (phase == MAP ? "MAP" : "REDUCE"));
 
+	job.task_list[phase][tid][wid] = task;
 	job.task_instances[phase][tid]++;
 
 	if (job.task_status[phase][tid] != T_STATUS_TIP_SLOW){
@@ -429,6 +428,7 @@ static void send_task(enum phase_e phase, size_t tid, size_t data_src,
 //			break;
 //		}
 //	}
+
 
 	fprintf(tasks_log, "%d_%zu_%lu,%s,%zu,%.3f,START,\n", phase, tid, wid,
 			(phase == MAP ? "MAP" : "REDUCE"), wid, MSG_get_clock());
@@ -503,7 +503,7 @@ static void finish_all_task_copies(task_info_t ti) {
 			MSG_task_cancel(job.task_list[phase][tid][i]);
 
 			//FIXME: MSG_task_destroy (job.task_list[phase][tid][i]);
-			job.task_list[phase][tid][i] = NULL;
+			//job.task_list[phase][tid][i] = NULL;
 			fprintf(tasks_log, "%d_%zu_%d,%s,%zu,%.3f,END,%.3f\n", ti->phase,
 					tid, i, (ti->phase == MAP ? "MAP" : "REDUCE"), ti->wid,
 					MSG_get_clock(), ti->shuffle_end);
