@@ -98,7 +98,7 @@ struct job_s {
     int*          task_confirmations[2]; //[phase][task_id] -> tasks that completed this task with the same result
     int*          task_status[2]; //[phase][task_id] -> pending, running, timeout, completed
     msg_task_t**  task_list[2];//[phase][task_id][worker id] -> collect the task descriptions for each task assigned to some node
-    size_t**      map_output;
+    size_t**      map_output;//[map_id][reduce_id] -> collect which map has produced which keys and how much data it has produced for that key
     heartbeat_t   heartbeats;
 } job;
 
@@ -108,6 +108,7 @@ struct task_info_s {
     size_t        id;
     size_t        src;
     size_t        wid;
+    size_t		  map_id; //used only on the request to the namenode for an intermediate map result... mom, forgive me for the bad solution!
     int           pid;
     msg_task_t    task;
     size_t*       map_output_copied;

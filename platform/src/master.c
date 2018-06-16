@@ -391,9 +391,8 @@ static void send_task(enum phase_e phase, size_t tid, size_t data_src,
 	msg_task_t task = NULL;
 	task_info_t task_info;
 
-	// CHECK THAT WE ARE NOT REASSIGNING A JOB TO THE SAME NODE
-	if(job.task_list[phase][tid][wid] != NULL)
-		xbt_die("The worker %lu has already been assigned to the task %lu", wid, tid);
+	// for fault-tolerance we don't want to reassign a task to the same node
+	xbt_assert(job.task_list[phase][tid][wid] == NULL);
 
 	job.task_list[phase][tid][wid] = task;
 

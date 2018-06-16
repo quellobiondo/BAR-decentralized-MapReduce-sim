@@ -20,6 +20,7 @@ along with MRSG.  If not, see <http://www.gnu.org/licenses/>. */
 
 /** @brief  Matrix that maps chunks to workers. */
 char**  chunk_owner;
+/** @brief  Matrix that maps map output for each key and on which workers these intermediate results can be found. */
 char***  map_output_owner;
 
 /**
@@ -39,7 +40,7 @@ void default_dfs_f (char** dfs_matrix, size_t chunks, size_t workers, int replic
  */
 size_t find_random_chunk_owner (size_t cid);
 
-size_t find_random_intermediate_result_owner(size_t reduce_id);
+size_t find_random_intermediate_result_owner(size_t map_id, size_t reduce_id);
 
 void update_intermediate_result_owner(size_t map_id, size_t owner);
 

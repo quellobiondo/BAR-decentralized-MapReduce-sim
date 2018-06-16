@@ -128,18 +128,13 @@ static int compute(int argc, char* argv[]) {
 		break;
 	}
 
-	/*
-	 * Execution in case we didn't executed yet
-	 *
-	 * TODO: remove the check? We need f+1 checks
-	 */
 	if (job.task_status[ti->phase][ti->id] != T_STATUS_DONE) {
 
 		TRY{
 			status = MSG_task_execute(task);
 
 			if (ti->phase == MAP && status == MSG_OK)
-				update_intermediate_result_owner(get_worker_id(MSG_host_self()), ti->id);
+				update_intermediate_result_owner(ti->id, get_worker_id(MSG_host_self()));
 			}
 		CATCH(e){
 			xbt_assert(e.category == cancel_error, "%s", e.msg);
@@ -211,62 +206,76 @@ static void get_map_output(task_info_t ti) {
 	data_copied = xbt_new0(size_t, config.amount_of_tasks[MAP]);
 	ti->map_output_copied = data_copied;
 	total_copied = 0;
-	must_copy = reduce_input_size(ti->id);
+	must_copy = reduce_input_size(ti->id); //get the overall input size for this key
 
 #ifdef VERBOSE
 	XBT_INFO ("INFO: start copy");
 #endif
 
 	// I have to copy all the intermediate MAP results for my key
-	for (map_index = 0; map_index < config.amount_of_tasks[MAP]; ) {
+	for (map_index = 0; map_index < config.amount_of_tasks[MAP]; map_index++) {
+		ti -> map_id = map_index;
 
-		// why is this done like this
+		// FIXME can be cleaned better, for example using a signal...
 		if (job.task_status[REDUCE][ti->id] == T_STATUS_DONE) {
 			xbt_free_ref(&data_copied);
 			return;
+		}
+
+		// check if this map is finished without producing any data
+		if(job.map_output[map_index][ti->id] <= 0 && job.task_status[MAP][map_index] == T_STATUS_DONE){
+			continue; //nothing to download from this map_id
+		}
+
+		// We need to wait the moment in which the task has completed to copy the data...
+		// Of course we can do this process more efficient, without blocking the whole queue first
+		// secondly streaming the intermediate data...
+		while(job.task_status[MAP][map_index] != T_STATUS_DONE){
+			xbt_sleep(0.1);
 		}
 
 		// check if I have it locally
 		if(map_output_owner[map_index][ti->id][my_id]){
 			data_copied[map_index] = user.map_output_f(map_index, ti->id);
 			total_copied += user.map_output_f(map_index, ti->id);
+
 			stats.reduce_local_map_result++;
 		}else{
-			//find someone else
-			// if this worker (wid) has data that I need and I didn't downloaded yet, I'll do it right now
-			// TODO: we have to modify the way in which we take the data from the nodes, there isn't always a 1:1 correspondance
-			other_worker = find_random_intermediate_result_owner(ti->id);
-			stats.reduce_remote_map_result++;
-			sprintf(mailbox, DATANODE_MAILBOX, other_worker);
-			status = send(SMS_GET_INTER_PAIRS, 0.0, 0.0, ti, mailbox);
-			if (status == MSG_OK) {
-				data = NULL;
+			// if this map id has produced data that I need and I didn't downloaded yet, I'll do it right now
+			// loop on this map task until we'll finish to download all the data needed
+			while(job.map_output[map_index][ti->id] > data_copied[map_index]){
 
-				sprintf(mailbox, TASK_MAILBOX, my_id,
-						MSG_process_self_PID());
-				status = receive(&data, mailbox);
+				other_worker = find_random_intermediate_result_owner(map_index, ti->id);
+				sprintf(mailbox, DATANODE_MAILBOX, other_worker);
+				status = send(SMS_GET_INTER_PAIRS, 0.0, 0.0, ti, mailbox);
+
 				if (status == MSG_OK) {
-					// update the current situation
-					data_copied[map_index] += MSG_task_get_data_size(data);
-					total_copied += MSG_task_get_data_size(data);
-					MSG_task_destroy(data);
+					data = NULL;
+
+					sprintf(mailbox, TASK_MAILBOX, my_id,
+							MSG_process_self_PID());
+					status = receive(&data, mailbox);
+					if (status == MSG_OK) {
+						// update the current situation
+						data_copied[map_index] += MSG_task_get_data_size(data);
+						total_copied += MSG_task_get_data_size(data);
+						MSG_task_destroy(data);
+					}
 				}
 			}
-		}
 
-		if(job.map_output[map_index][ti->id] <= data_copied[map_index]){
-			map_index++;
+			stats.reduce_remote_map_result++;
 		}
 	}
 
 	xbt_assert(total_copied >= must_copy);
 
-	XBT_INFO("Shuffle phase finished for %lu", my_id);
-
 #ifdef VERBOSE
 	XBT_INFO ("INFO: copy finished");
 #endif
 	ti->shuffle_end = MSG_get_clock();
+
+	// TODO generate event for shuffle phase finished
 
 	xbt_free_ref(&data_copied);
 }

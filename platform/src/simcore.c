@@ -291,26 +291,51 @@ static void init_stats(void) {
  * @brief  Free allocated memory for global variables.
  */
 static void free_global_mem(void) {
-	size_t i;
+	size_t i, j;
+	int phases[2]; phases[0] = MAP; phases[1] = REDUCE;
+	int phase_index, phase;
 
+	// free dfs memory
 	for (i = 0; i < config.chunk_count; i++)
 		xbt_free_ref(&chunk_owner[i]);
 	xbt_free_ref(&chunk_owner);
 
+	for(i = 0; i<config.amount_of_tasks[MAP]; i++){
+		for(j=0; j<config.amount_of_tasks[REDUCE]; j++){
+			xbt_free_ref(&map_output_owner[i][j]);
+		}
+		xbt_free_ref(&map_output_owner[i]);
+	}
+	xbt_free_ref(&map_output_owner);
+
+	// free config memory
 	xbt_free_ref(&config.workers);
-	xbt_free_ref(&job.task_status[MAP]);
-	xbt_free_ref(&job.task_instances[MAP]);
-	xbt_free_ref(&job.task_confirmations[MAP]);
-	xbt_free_ref(&job.task_status[REDUCE]);
-	xbt_free_ref(&job.task_instances[REDUCE]);
-	xbt_free_ref(&job.task_confirmations[REDUCE]);
+
+	// free job memory
+	for(phase_index = 0; phase_index < 2; phase_index++){
+		phase = phases[phase_index];
+		xbt_free_ref(&job.task_status[phase]);
+		xbt_free_ref(&job.task_instances[phase]);
+		xbt_free_ref(&job.task_confirmations[phase]);
+	}
+
 	xbt_free_ref(&job.heartbeats);
-	for (i = 0; i < config.amount_of_tasks[MAP]; i++)
-		xbt_free_ref(&job.task_list[MAP][i]);
-	xbt_free_ref(&job.task_list[MAP]);
-	for (i = 0; i < config.amount_of_tasks[REDUCE]; i++)
-		xbt_free_ref(&job.task_list[REDUCE][i]);
-	xbt_free_ref(&job.task_list[REDUCE]);
+
+	// job->task list
+	for(phase_index = 0; phase_index<2; phase_index++){
+		phase = phases[phase_index];
+		for (i = 0; i < config.amount_of_tasks[phase]; i++){
+			xbt_free_ref(&job.task_list[phase][i]);
+		}
+		xbt_free_ref(&job.task_list[phase]);
+	}
+
+	// job->map_output
+	for(i = 0; i<config.amount_of_tasks[MAP]; i++){
+		xbt_free_ref(&job.map_output[i]);
+	}
+	xbt_free_ref(&job.map_output);
+
 }
 
 // vim: set ts=8 sw=4:
