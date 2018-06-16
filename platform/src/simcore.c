@@ -251,6 +251,7 @@ static void init_job(void) {
 	job.tasks_pending[MAP] = config.amount_of_tasks[MAP];
 	job.task_status[MAP] = xbt_new0(int, config.amount_of_tasks[MAP]);
 	job.task_instances[MAP] = xbt_new0(int, config.amount_of_tasks[MAP]);
+	job.task_replicas_instances[MAP] = xbt_new0(int, config.amount_of_tasks[MAP]);
 	job.task_confirmations[MAP] = xbt_new0(int, config.amount_of_tasks[MAP]);
 	job.task_list[MAP] = xbt_new0(msg_task_t*, config.amount_of_tasks[MAP]);
 	for (i = 0; i < config.amount_of_tasks[MAP]; i++)
@@ -264,6 +265,7 @@ static void init_job(void) {
 	job.tasks_pending[REDUCE] = config.amount_of_tasks[REDUCE];
 	job.task_status[REDUCE] = xbt_new0(int, config.amount_of_tasks[REDUCE]);
 	job.task_instances[REDUCE] = xbt_new0(int, config.amount_of_tasks[REDUCE]);
+	job.task_replicas_instances[REDUCE] = xbt_new0(int, config.amount_of_tasks[REDUCE]);
 	job.task_confirmations[REDUCE] = xbt_new0(int, config.amount_of_tasks[REDUCE]);
 	job.task_list[REDUCE] = xbt_new0(msg_task_t*, config.amount_of_tasks[REDUCE]);
 	for (i = 0; i < config.amount_of_tasks[REDUCE]; i++)
@@ -316,6 +318,7 @@ static void free_global_mem(void) {
 		phase = phases[phase_index];
 		xbt_free_ref(&job.task_status[phase]);
 		xbt_free_ref(&job.task_instances[phase]);
+		xbt_free_ref(&job.task_replicas_instances[phase]);
 		xbt_free_ref(&job.task_confirmations[phase]);
 	}
 

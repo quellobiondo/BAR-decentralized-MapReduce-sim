@@ -71,16 +71,16 @@ int master(int argc, char* argv[]) {
 
 				if (is_straggler(worker)) {
 					set_speculative_tasks(worker);
-				} else {
-					// do we have to do this exclusively?
-
-					// let's assign to this worker its task to execute (map/reduce) for all the availables slots
-					if (heartbeat->slots_av[MAP] > 0)
-						send_scheduler_task(MAP, wid);
-
-					if (heartbeat->slots_av[REDUCE] > 0)
-						send_scheduler_task(REDUCE, wid);
 				}
+				//TODO to check that in this way we don't assign to the stragglers too many tasks
+
+				// let's assign to this worker its task to execute (map/reduce) for all the availables slots
+				if (heartbeat->slots_av[MAP] > 0)
+					send_scheduler_task(MAP, wid);
+
+				if (heartbeat->slots_av[REDUCE] > 0)
+					send_scheduler_task(REDUCE, wid);
+
 			} else if (message_is(msg, SMS_TASK_DONE)) {
 				ti = (task_info_t) MSG_task_get_data(msg);
 
@@ -165,9 +165,6 @@ static int is_straggler(msg_host_t worker) {
 	int task_count;
 	size_t wid;
 
-	// TODO : is this really a straggler? It seems just a node with average speed inferior to the average... and that is currently running a task
-	// TODO : shouldn't it be with a timeout? okay, a straggler is just a "slow node", it is checked later during the possible assignement if a timeout is happened
-
 	wid = get_worker_id(worker);
 
 	/*
@@ -179,9 +176,9 @@ static int is_straggler(msg_host_t worker) {
 
 	if (MSG_get_host_speed(worker) < config.grid_average_speed
 			&& task_count > 0)
-		return 1;
+		return TRUE;
 
-	return 0;
+	return FALSE;
 }
 
 /*
@@ -234,62 +231,23 @@ static int task_time_elapsed(msg_task_t task) {
 static void set_speculative_tasks(msg_host_t worker) {
 	size_t tid;
 	size_t wid;
-	task_info_t ti;
-	size_t first_non_null;
+	int phases[2]; phases[0] = MAP; phases[1] = REDUCE;
+	int phase_index, phase;
+	int timeout_phases[2]; timeout_phases[0] = TRIGGER_TIMEOUT_SPECULATIVE_MAP; timeout_phases[1] = TRIGGER_TIMEOUT_SPECULATIVE_REDUCE;
 
 	wid = get_worker_id(worker);
 
-	/*
-	 * Speculative assignement for the MAP
-	 */
+	// mark all the tasks of the straggler node as available for speculative tasks in case they have timeouted.
+	for(phase_index = 0; phase_index < 2; phase_index++){
+		phase = phases[phase_index];
 
-	if (job.heartbeats[wid].slots_av[MAP] < config.slots[MAP]) {
-		// if the straggler is currently executing some MAP task
-		for (tid = 0; tid < config.amount_of_tasks[MAP]; tid++) {
-
-			//check if there is at least one task assigned
-			//TODO CHANGE POLICY, SHOULDN'T BE THE FIRST NON NULL, BUT? THE OLDEST ONE?
-			for(first_non_null = 0;
-				job.task_list[MAP][tid][first_non_null] != NULL ||
-						first_non_null < config.number_of_workers;
-				first_non_null++);
-
-			if (job.task_list[MAP][tid][first_non_null] != NULL) {
-
-				/*
-				 * Get the information of the first node that is working on the task
-				 * So, not the straggler, but in general we check if a timeout occurred in one of the many
-				 * This works, but ideally we can assign immediately two nodes to execute speculatively the same task just beacause we checked that the old one is still slow...
-				 */
-				ti = (task_info_t) MSG_task_get_data(job.task_list[MAP][tid][first_non_null]);
-
-				// TODO in the future here we could apply some smarter strategy...
-				if (ti->wid == wid && task_time_elapsed(job.task_list[MAP][tid][first_non_null]) > TRIGGER_TIMEOUT_SPECULATIVE_MAP) {
-					job.task_status[MAP][tid] = T_STATUS_TIP_SLOW;
-				}
-			}
-		}
-	}
-
-	/*
-	 * Speculative assignement for the REDUCE
-	 */
-
-	if (job.heartbeats[wid].slots_av[REDUCE] < config.slots[REDUCE]) {
-		for (tid = 0; tid < config.amount_of_tasks[REDUCE]; tid++) {
-
-			//check if there is at least one task assigned
-			//TODO CHANGE POLICY, SHOULDN'T BE THE FIRST NON NULL, BUT? THE OLDEST ONE?
-			for(first_non_null = 0;
-				job.task_list[REDUCE][tid][first_non_null] != NULL ||
-						first_non_null < config.number_of_workers;
-				first_non_null++);
-
-			if (job.task_list[REDUCE][tid][first_non_null] != NULL) {
-				ti = (task_info_t) MSG_task_get_data(job.task_list[REDUCE][tid][first_non_null]);
-
-				if (ti->wid == wid && task_time_elapsed(job.task_list[REDUCE][tid][first_non_null]) > TRIGGER_TIMEOUT_SPECULATIVE_REDUCE) {
-					job.task_status[REDUCE][tid] = T_STATUS_TIP_SLOW;
+		if (job.heartbeats[wid].slots_av[phase] < config.slots[phase]) {
+			for (tid = 0; tid < config.amount_of_tasks[phase]; tid++) {
+				if (job.task_list[phase][tid][wid] != NULL && job.task_status[phase][tid] == T_STATUS_TIP) {
+					//the task has to be already assigned to the straggler and it has to be in the running phase
+					if (task_time_elapsed(job.task_list[phase][tid][wid]) > timeout_phases[phase]) {
+						job.task_status[phase][tid] = T_STATUS_TIP_SLOW;
+					}
 				}
 			}
 		}
@@ -372,9 +330,8 @@ enum task_type_e get_task_type(enum phase_e phase, size_t tid, size_t wid) {
 			xbt_die("Non treated task status: %d", task_status);
 		}
 		break;
-	default:
-		return NO_TASK;
 	}
+	xbt_die("Non treated phase: %d", phase);
 }
 
 /**
@@ -410,25 +367,16 @@ static void send_task(enum phase_e phase, size_t tid, size_t data_src,
 	MSG_task_set_category(task, (phase == MAP ? "MAP" : "REDUCE"));
 
 	job.task_list[phase][tid][wid] = task;
-	job.task_instances[phase][tid]++;
 
-	if (job.task_status[phase][tid] != T_STATUS_TIP_SLOW){
-
+	if (job.task_status[phase][tid] == T_STATUS_TIP_SLOW){
+		job.task_replicas_instances[phase][tid]++;
+	}else{
+		job.task_instances[phase][tid]++;
 		if(job.task_instances[phase][tid] >= number_of_task_replicas())
 			job.task_status[phase][tid] = T_STATUS_TIP;
 	}
 
 	job.heartbeats[wid].slots_av[phase]--; //okay, it just tell that there is a slot that is less available
-
-	// FIXME I just have to add to the list, it shouldn't explode here! (what if we have already MAX_SPECULATIVE_COPIES)?
-	// Plus, this would mean that we can have running tasks that will not end using the kill all tasks function.
-//	for (i = 0; i < MAX_SPECULATIVE_COPIES; i++) {
-//		if (job.task_list[phase][tid][i] == NULL) {
-//			job.task_list[phase][tid][i] = task;
-//			break;
-//		}
-//	}
-
 
 	fprintf(tasks_log, "%d_%zu_%lu,%s,%zu,%.3f,START,\n", phase, tid, wid,
 			(phase == MAP ? "MAP" : "REDUCE"), wid, MSG_get_clock());

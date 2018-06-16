@@ -39,7 +39,7 @@ along with MRSG.  If not, see <http://www.gnu.org/licenses/>. */
 #define NONE (-1)
 #define MAX_SPECULATIVE_COPIES 3
 #define TRIGGER_TIMEOUT_SPECULATIVE_MAP 60
-#define TRIGGER_TIMEOUT_SPECULATIVE_REDUCE 60
+#define TRIGGER_TIMEOUT_SPECULATIVE_REDUCE 10
 
 /* Mailbox related. */
 #define MAILBOX_ALIAS_SIZE 256
@@ -95,6 +95,7 @@ struct job_s {
     int           finished;
     int           tasks_pending[2];
     int*          task_instances[2]; //[phase][task_id] -> running tasks
+    int*          task_replicas_instances[2]; //[phase][task_id] -> running replicas for tasks
     int*          task_confirmations[2]; //[phase][task_id] -> tasks that completed this task with the same result
     int*          task_status[2]; //[phase][task_id] -> pending, running, timeout, completed
     msg_task_t**  task_list[2];//[phase][task_id][worker id] -> collect the task descriptions for each task assigned to some node

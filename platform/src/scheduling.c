@@ -72,7 +72,7 @@ size_t choose_default_map_task(size_t wid /*, TODO list of tasks that need to be
 			selected_task_id = map_id;
 			break;
 		} else if (task_type == REMOTE
-				|| (task_type < best_task_type && job.task_instances[MAP][map_id] < MAX_SPECULATIVE_COPIES)){
+				|| (task_type < best_task_type && job.task_replicas_instances[MAP][map_id] < MAX_SPECULATIVE_COPIES)){
 			best_task_type = task_type;
 			selected_task_id = map_id;
 		}
@@ -114,7 +114,7 @@ size_t choose_default_reduce_task(size_t wid) {
 			selected_task_id = reduce_id;
 			break;
 		} else if (task_type < best_task_type
-				&& job.task_instances[REDUCE][reduce_id] < MAX_SPECULATIVE_COPIES) {
+				&& job.task_replicas_instances[REDUCE][reduce_id] < MAX_SPECULATIVE_COPIES) {
 			best_task_type = task_type; // SPECULATIVE
 			selected_task_id = reduce_id;
 		}
