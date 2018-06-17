@@ -21,6 +21,7 @@
 #include "common.h"
 #include "worker.h"
 #include "dfs.h"
+#include "DLT.h"
 
 XBT_LOG_EXTERNAL_DEFAULT_CATEGORY(msg_test);
 
@@ -45,9 +46,15 @@ int master(int argc, char* argv[]) {
 	heartbeat_t heartbeat;
 	msg_error_t status;
 	msg_host_t worker;
-	msg_task_t msg = NULL;
+	msg_task_t msg = NULL, original_msg = NULL;
+	DLT_block_t block = NULL;
 	size_t wid;
 	task_info_t ti;
+	msg_process_t DLT_process;
+	int tx_counter;
+
+	/* Spawn a process to exchange data with other workers. */
+	DLT_process = MSG_process_create("DLT", DLT, NULL, MSG_host_self());
 
 	print_config();
 	XBT_INFO("JOB BEGIN");
@@ -63,47 +70,55 @@ int master(int argc, char* argv[]) {
 		msg = NULL;
 		status = receive(&msg, MASTER_MAILBOX);
 		if (status == MSG_OK) {
-			worker = MSG_task_get_source(msg);
-			wid = get_worker_id(worker);
+			xbt_assert(message_is(msg, SMS_DLT_BLOCK), "Master received a message that is not from the DLT!");
+			block = (DLT_block_t) MSG_task_get_data(msg);
 
-			if (message_is(msg, SMS_HEARTBEAT)) {
-				heartbeat = &job.heartbeats[wid];
+			for(tx_counter = 0; tx_counter < block->size; tx_counter++){
+				worker = block->original_senders[tx_counter];
+				wid = get_worker_id(worker);
 
-				if (is_straggler(worker)) {
-					set_speculative_tasks(worker);
-				}
-				//TODO to check that in this way we don't assign to the stragglers too many tasks
+				original_msg = block->original_messages[tx_counter];
 
-				// let's assign to this worker its task to execute (map/reduce) for all the availables slots
-				if (heartbeat->slots_av[MAP] > 0)
-					send_scheduler_task(MAP, wid);
+				if (message_is(original_msg, SMS_HEARTBEAT)) {
+					heartbeat = &job.heartbeats[wid];
 
-				if (heartbeat->slots_av[REDUCE] > 0)
-					send_scheduler_task(REDUCE, wid);
-
-			} else if (message_is(msg, SMS_TASK_DONE)) {
-				ti = (task_info_t) MSG_task_get_data(msg);
-
-				// increment result confirmations
-				job.task_confirmations[ti->phase][ti->id]++;
-
-				if (enough_result_confirmation(ti)){
-					// mark that task as done and finish everything
-					// task finished, clean up and communicate
-					if (job.task_status[ti->phase][ti->id] != T_STATUS_DONE) {
-						job.task_status[ti->phase][ti->id] = T_STATUS_DONE;
-
-						finish_all_task_copies(ti); // pre-emption
-						job.tasks_pending[ti->phase]--;
-						if (job.tasks_pending[ti->phase] <= 0) {
-							XBT_INFO(" ");
-							XBT_INFO("%s PHASE DONE",
-									(ti->phase == MAP ? "MAP" : "REDUCE"));
-							XBT_INFO(" ");
-						}
+					if (is_straggler(worker)) {
+						set_speculative_tasks(worker);
 					}
-					xbt_free_ref(&ti);
+					//TODO to check that in this way we don't assign to the stragglers too many tasks
+
+					// let's assign to this worker its task to execute (map/reduce) for all the availables slots
+					if (heartbeat->slots_av[MAP] > 0)
+						send_scheduler_task(MAP, wid);
+
+					if (heartbeat->slots_av[REDUCE] > 0)
+						send_scheduler_task(REDUCE, wid);
+
+				} else if (message_is(original_msg, SMS_TASK_DONE)) {
+					ti = (task_info_t) MSG_task_get_data(original_msg);
+
+					// increment result confirmations
+					job.task_confirmations[ti->phase][ti->id]++;
+
+					if (enough_result_confirmation(ti)){
+						// mark that task as done and finish everything
+						// task finished, clean up and communicate
+						if (job.task_status[ti->phase][ti->id] != T_STATUS_DONE) {
+							job.task_status[ti->phase][ti->id] = T_STATUS_DONE;
+
+							finish_all_task_copies(ti); // pre-emption
+							job.tasks_pending[ti->phase]--;
+							if (job.tasks_pending[ti->phase] <= 0) {
+								XBT_INFO(" ");
+								XBT_INFO("%s PHASE DONE",
+										(ti->phase == MAP ? "MAP" : "REDUCE"));
+								XBT_INFO(" ");
+							}
+						}
+						xbt_free_ref(&ti);
+					}
 				}
+				MSG_task_destroy(original_msg);
 			}
 			MSG_task_destroy(msg);
 		}
@@ -115,6 +130,9 @@ int master(int argc, char* argv[]) {
 
 	print_config();
 	print_stats();
+
+	MSG_process_kill(DLT_process);
+
 	XBT_INFO("JOB END");
 
 	return 0;
@@ -137,6 +155,8 @@ static void print_config(void) {
 	XBT_INFO("average power: %g flops/s", config.grid_average_speed);
 	XBT_INFO("heartbeat interval: %ds", config.heartbeat_interval);
 	XBT_INFO("byzantine: %d", config.byzantine);
+	XBT_INFO("Distributed Ledger average block time: %d", config.block_period);
+	XBT_INFO("Distributed Ledger transactions per block: %d", config.block_size);
 	XBT_INFO(" ");
 }
 

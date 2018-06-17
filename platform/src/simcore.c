@@ -130,6 +130,9 @@ static void read_mr_config_file(const char* file_name) {
 	config.slots[MAP] = 2;
 	config.amount_of_tasks[REDUCE] = 1;
 	config.slots[REDUCE] = 2;
+	config.byzantine = 0;
+	config.block_size = 100;
+	config.block_period = 15;
 
 
 	/* Read the user configuration file. */
@@ -154,6 +157,10 @@ static void read_mr_config_file(const char* file_name) {
 			fscanf(file, "%d", &config.slots[REDUCE]);
 		} else if (strcmp(property, "byzantine") == 0) {
 			fscanf(file, "%d", &config.byzantine);
+		} else if (strcmp(property, "block_period") == 0) {
+			fscanf(file, "%d", &config.block_period);
+		} else if (strcmp(property, "block_size") == 0) {
+			fscanf(file, "%d", &config.block_size);
 		} else {
 			printf("Error: Property %s is not valid. (in %s)", property,
 					file_name);
@@ -175,8 +182,11 @@ static void read_mr_config_file(const char* file_name) {
 			"The number of reduce tasks can't be negative");
 	xbt_assert(config.slots[REDUCE] > 0,
 			"Reduce slots must be greater than zero");
-	xbt_assert(config.byzantine >= 0,
-				"Byzantine nodes must be at least zero");
+	xbt_assert(config.byzantine >= 0, "Byzantine nodes must be at least zero");
+	xbt_assert(config.block_period >= 0,
+			"Period of block creation in seconds must be at least zero");
+	xbt_assert(config.block_size >= 0,
+			"Number of messages per block must be at least zero");
 }
 
 /**
@@ -227,6 +237,7 @@ static void init_config(void) {
 	config.heartbeat_interval = maxval(HEARTBEAT_MIN_INTERVAL,
 			config.number_of_workers / 100);
 	config.amount_of_tasks[MAP] = config.chunk_count;
+
 	config.initialized = 1;
 }
 
@@ -251,7 +262,8 @@ static void init_job(void) {
 	job.tasks_pending[MAP] = config.amount_of_tasks[MAP];
 	job.task_status[MAP] = xbt_new0(int, config.amount_of_tasks[MAP]);
 	job.task_instances[MAP] = xbt_new0(int, config.amount_of_tasks[MAP]);
-	job.task_replicas_instances[MAP] = xbt_new0(int, config.amount_of_tasks[MAP]);
+	job.task_replicas_instances[MAP] = xbt_new0(int,
+			config.amount_of_tasks[MAP]);
 	job.task_confirmations[MAP] = xbt_new0(int, config.amount_of_tasks[MAP]);
 	job.task_list[MAP] = xbt_new0(msg_task_t*, config.amount_of_tasks[MAP]);
 	for (i = 0; i < config.amount_of_tasks[MAP]; i++)
@@ -265,11 +277,15 @@ static void init_job(void) {
 	job.tasks_pending[REDUCE] = config.amount_of_tasks[REDUCE];
 	job.task_status[REDUCE] = xbt_new0(int, config.amount_of_tasks[REDUCE]);
 	job.task_instances[REDUCE] = xbt_new0(int, config.amount_of_tasks[REDUCE]);
-	job.task_replicas_instances[REDUCE] = xbt_new0(int, config.amount_of_tasks[REDUCE]);
-	job.task_confirmations[REDUCE] = xbt_new0(int, config.amount_of_tasks[REDUCE]);
-	job.task_list[REDUCE] = xbt_new0(msg_task_t*, config.amount_of_tasks[REDUCE]);
+	job.task_replicas_instances[REDUCE] = xbt_new0(int,
+			config.amount_of_tasks[REDUCE]);
+	job.task_confirmations[REDUCE] = xbt_new0(int,
+			config.amount_of_tasks[REDUCE]);
+	job.task_list[REDUCE] = xbt_new0(msg_task_t*,
+			config.amount_of_tasks[REDUCE]);
 	for (i = 0; i < config.amount_of_tasks[REDUCE]; i++)
-		job.task_list[REDUCE][i] = xbt_new0(msg_task_t, config.number_of_workers);
+		job.task_list[REDUCE][i] = xbt_new0(msg_task_t,
+				config.number_of_workers);
 }
 
 /**
@@ -285,8 +301,8 @@ static void init_stats(void) {
 	stats.map_spec_r = 0;
 	stats.reduce_normal = 0;
 	stats.reduce_spec = 0;
-	stats.reduce_remote_map_result=0;
-	stats.reduce_local_map_result=0;
+	stats.reduce_remote_map_result = 0;
+	stats.reduce_local_map_result = 0;
 }
 
 /**
@@ -294,7 +310,9 @@ static void init_stats(void) {
  */
 static void free_global_mem(void) {
 	size_t i, j;
-	int phases[2]; phases[0] = MAP; phases[1] = REDUCE;
+	int phases[2];
+	phases[0] = MAP;
+	phases[1] = REDUCE;
 	int phase_index, phase;
 
 	// free dfs memory
@@ -302,8 +320,8 @@ static void free_global_mem(void) {
 		xbt_free_ref(&chunk_owner[i]);
 	xbt_free_ref(&chunk_owner);
 
-	for(i = 0; i<config.amount_of_tasks[MAP]; i++){
-		for(j=0; j<config.amount_of_tasks[REDUCE]; j++){
+	for (i = 0; i < config.amount_of_tasks[MAP]; i++) {
+		for (j = 0; j < config.amount_of_tasks[REDUCE]; j++) {
 			xbt_free_ref(&map_output_owner[i][j]);
 		}
 		xbt_free_ref(&map_output_owner[i]);
@@ -314,7 +332,7 @@ static void free_global_mem(void) {
 	xbt_free_ref(&config.workers);
 
 	// free job memory
-	for(phase_index = 0; phase_index < 2; phase_index++){
+	for (phase_index = 0; phase_index < 2; phase_index++) {
 		phase = phases[phase_index];
 		xbt_free_ref(&job.task_status[phase]);
 		xbt_free_ref(&job.task_instances[phase]);
@@ -325,16 +343,16 @@ static void free_global_mem(void) {
 	xbt_free_ref(&job.heartbeats);
 
 	// job->task list
-	for(phase_index = 0; phase_index<2; phase_index++){
+	for (phase_index = 0; phase_index < 2; phase_index++) {
 		phase = phases[phase_index];
-		for (i = 0; i < config.amount_of_tasks[phase]; i++){
+		for (i = 0; i < config.amount_of_tasks[phase]; i++) {
 			xbt_free_ref(&job.task_list[phase][i]);
 		}
 		xbt_free_ref(&job.task_list[phase]);
 	}
 
 	// job->map_output
-	for(i = 0; i<config.amount_of_tasks[MAP]; i++){
+	for (i = 0; i < config.amount_of_tasks[MAP]; i++) {
 		xbt_free_ref(&job.map_output[i]);
 	}
 	xbt_free_ref(&job.map_output);

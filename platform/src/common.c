@@ -60,9 +60,9 @@ msg_error_t receive(msg_task_t* msg, const char* mailbox) {
 
 int message_is(msg_task_t msg, const char* str) {
 	if (strcmp(MSG_task_get_name(msg), str) == 0)
-		return 1;
+		return TRUE;
 
-	return 0;
+	return FALSE;
 }
 
 int maxval(int a, int b) {

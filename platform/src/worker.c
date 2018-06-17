@@ -67,8 +67,8 @@ int worker(int argc, char* argv[]) {
 static void heartbeat(void) {
 	while (!job.finished) {
 
-		// to replace with BAR fault tolerant mechanism
-		send_sms(SMS_HEARTBEAT, MASTER_MAILBOX);
+		// TODO to replace with BAR fault tolerant mechanism
+		send_sms(SMS_HEARTBEAT, DLT_MAILBOX);
 		MSG_process_sleep(config.heartbeat_interval);
 	}
 }
@@ -150,7 +150,7 @@ static int compute(int argc, char* argv[]) {
 
 	// TODO: update, send just to the blockchain
 	if (!job.finished)
-		send(SMS_TASK_DONE, 0.0, 0.0, ti, MASTER_MAILBOX);
+		send(SMS_TASK_DONE, 0.0, 0.0, ti, DLT_MAILBOX);
 
 	return 0;
 }

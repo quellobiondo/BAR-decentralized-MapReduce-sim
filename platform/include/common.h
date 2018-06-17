@@ -35,6 +35,7 @@ along with MRSG.  If not, see <http://www.gnu.org/licenses/>. */
 #define SMS_TASK "SMS-T"
 #define SMS_TASK_DONE "SMS-TD"
 #define SMS_FINISH "SMS-F"
+#define SMS_DLT_BLOCK "SMS-DLT_BLOCK"
 
 #define NONE (-1)
 #define MAX_SPECULATIVE_COPIES 3
@@ -44,6 +45,7 @@ along with MRSG.  If not, see <http://www.gnu.org/licenses/>. */
 /* Mailbox related. */
 #define MAILBOX_ALIAS_SIZE 256
 #define MASTER_MAILBOX "MASTER"
+#define DLT_MAILBOX "DLT"
 #define DATANODE_MAILBOX "%zu:DN"
 #define TASKTRACKER_MAILBOX "%zu:TT"
 #define TASK_MAILBOX "%zu:%d"
@@ -87,7 +89,9 @@ struct config_s {
     int            number_of_workers;
     int            slots[2];
     int            initialized;
-    int            byzantine;
+    int            byzantine;    // number of byzantine nodes that the system need to tollerate
+    int 		   block_size;   // number of messages per block
+    int 		   block_period; // number of seconds between a block and the other
     msg_host_t*    workers;
 } config;
 
@@ -117,6 +121,14 @@ struct task_info_s {
 };
 
 typedef struct task_info_s* task_info_t;
+
+struct DLT_block_s {
+	msg_host_t* 	original_senders; // original transaction sender, as this structure is thought to be relayed by the DLT or someone else
+    msg_task_t* 	original_messages;// original message - this structure is just an envelope
+    int 			size;
+};
+
+typedef struct DLT_block_s* DLT_block_t;
 
 struct stats_s {
     int   map_local;
