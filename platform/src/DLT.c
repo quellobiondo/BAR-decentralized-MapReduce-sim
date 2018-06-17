@@ -28,17 +28,26 @@ int DLT(int argc, char *argv[]){
 	msg_task_t task_envelope = NULL;
 	msg_task_t msg = NULL;
 	DLT_block_t block = NULL;
+	const char* hostname = MSG_host_get_name(MSG_host_self());
 
 	block = xbt_new(struct DLT_block_s, 1);
 	block->original_messages = xbt_new(msg_task_t, config.block_size);
 	block->original_senders = xbt_new(msg_host_t, config.block_size);
 
+	TRACE_host_state_declare("BLOCK");
+	TRACE_host_state_declare_value("BLOCK", "COMPUTATION", "0.7 0.7 0.7");
+	TRACE_host_state_declare_value("BLOCK", "AGGREGATION", "0.1 0.7 0.1");
+	TRACE_host_variable_declare_with_color("TRANSACTIONS", "0.8 0.2 0.2");
+
 	XBT_INFO("DLT BEGIN");
 
 	//	loop until we end the master stuff
 	while (!job.finished) {
+		TRACE_host_set_state(hostname, "BLOCK", "COMPUTATION");
 		// block for config.period_blockchain
 		xbt_sleep(max(config.block_period, 0.1));
+
+		TRACE_host_set_state(hostname, "BLOCK", "AGGREGATION");
 
 		// forward first config.blockdimension messages to master
 		for(block->size = 0; block->size < config.block_size && MSG_task_listen(DLT_MAILBOX); block->size++){
@@ -49,6 +58,8 @@ int DLT(int argc, char *argv[]){
 		}
 
 		if(block->size == 0) continue;
+
+		TRACE_host_variable_set(hostname, "TRANSACTIONS", block->size);
 
 		task_envelope = MSG_task_create(SMS_DLT_BLOCK, 0, 0.0, (void*) block);
 		xbt_assert(MSG_task_send(task_envelope, MASTER_MAILBOX) == MSG_OK, "ERROR SENDING BLOCK");

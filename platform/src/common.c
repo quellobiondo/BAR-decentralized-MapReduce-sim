@@ -104,4 +104,16 @@ size_t reduce_input_size(size_t rid) {
 	return sum;
 }
 
+/*
+ * Tell how many replicas do you want for every task
+ * The replicas are considered as different nodes
+ * The replicas are not to solve the stragglers (mainly)
+ *
+ * Improvement idea: consider also the failures like in MOON?
+ */
+int number_of_task_replicas(){
+	int necessary_replicas_to_be_BFT = 2*config.byzantine + 1;
+	return min(config.number_of_workers, necessary_replicas_to_be_BFT);
+}
+
 // vim: set ts=8 sw=4:

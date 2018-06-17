@@ -39,7 +39,6 @@ static void send_task(enum phase_e phase, size_t tid, size_t data_src,
 char* task_type_string(enum task_type_e task_type);
 static void finish_all_task_copies(task_info_t ti);
 static int enough_result_confirmation(task_info_t ti);
-static int number_of_task_replicas();
 
 /** @brief  Main master function. */
 int master(int argc, char* argv[]) {
@@ -52,6 +51,14 @@ int master(int argc, char* argv[]) {
 	task_info_t ti;
 	msg_process_t DLT_process;
 	int tx_counter;
+
+	TRACE_host_state_declare("MAP");
+	TRACE_host_state_declare("REDUCE");
+
+	TRACE_host_state_declare_value("MAP", "BEGIN", "0.7 0.7 0.7");
+	TRACE_host_state_declare_value("MAP", "END", "0.7 0.7 0.7");
+	TRACE_host_state_declare_value("REDUCE", "BEGIN", "0.1 0.7 0.1");
+	TRACE_host_state_declare_value("REDUCE", "END", "0.1 0.7 0.1");
 
 	/* Spawn a process to exchange data with other workers. */
 	DLT_process = MSG_process_create("DLT", DLT, NULL, MSG_host_self());
@@ -113,6 +120,7 @@ int master(int argc, char* argv[]) {
 								XBT_INFO("%s PHASE DONE",
 										(ti->phase == MAP ? "MAP" : "REDUCE"));
 								XBT_INFO(" ");
+								TRACE_host_set_state(MSG_host_get_name(MSG_host_self()), (ti->phase == MAP ? "MAP" : "REDUCE"), "END");
 							}
 						}
 						xbt_free_ref(&ti);
@@ -215,18 +223,6 @@ static int is_straggler(msg_host_t worker) {
 static int enough_result_confirmation(task_info_t ti){
 	int threshold_BFT = config.byzantine + 1;
 	return min(config.number_of_workers, threshold_BFT) <= job.task_confirmations[ti->phase][ti->id];
-}
-
-/*
- * Tell how many replicas do you want for every task
- * The replicas are considered as different nodes
- * The replicas are not to solve the stragglers (mainly)
- *
- * Improvement idea: consider also the failures like in MOON?
- */
-static int number_of_task_replicas(){
-	int necessary_replicas_to_be_BFT = 2*config.byzantine + 1;
-	return min(config.number_of_workers, necessary_replicas_to_be_BFT);
 }
 
 /**
@@ -398,6 +394,7 @@ static void send_task(enum phase_e phase, size_t tid, size_t data_src,
 
 	job.heartbeats[wid].slots_av[phase]--; //okay, it just tell that there is a slot that is less available
 
+	TRACE_host_set_state(MSG_host_get_name(MSG_host_self()), (phase == MAP ? "MAP" : "REDUCE"), "START");
 	fprintf(tasks_log, "%d_%zu_%lu,%s,%zu,%.3f,START,\n", phase, tid, wid,
 			(phase == MAP ? "MAP" : "REDUCE"), wid, MSG_get_clock());
 

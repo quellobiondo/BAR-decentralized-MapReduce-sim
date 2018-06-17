@@ -68,10 +68,10 @@ size_t choose_default_map_task(size_t wid /*, TODO list of tasks that need to be
 
 		task_type = get_task_type(MAP, map_id, wid);
 
-		if (task_type == LOCAL) {
+		if (task_type == LOCAL && job.task_instances[MAP][map_id] < number_of_task_replicas()) {
 			selected_task_id = map_id;
 			break;
-		} else if (task_type == REMOTE
+		} else if ((task_type == REMOTE && job.task_instances[MAP][map_id] < number_of_task_replicas())
 				|| (task_type < best_task_type && job.task_replicas_instances[MAP][map_id] < MAX_SPECULATIVE_COPIES)){
 			best_task_type = task_type;
 			selected_task_id = map_id;
@@ -110,7 +110,7 @@ size_t choose_default_reduce_task(size_t wid) {
 
 		task_type = get_task_type(REDUCE, reduce_id, wid);
 
-		if (task_type == NORMAL) {
+		if (task_type == NORMAL && job.task_instances[REDUCE][reduce_id] < number_of_task_replicas()) {
 			selected_task_id = reduce_id;
 			break;
 		} else if (task_type < best_task_type

@@ -1,11 +1,11 @@
 CC = gcc
 
-INSTALL_PATH = /usr/
+INSTALL_PATH = /usr
 INCLUDES = -I../platform/include -I$(INSTALL_PATH)/include
 DEFS = -L$(INSTALL_PATH)/lib
 LDADD = -lm -lsimgrid
 
-SRC=$(wildcard *.c)
+SRC=$(wildcard src/*.c)
 BIN=$(SRC:.c=.bin)
 
 all: $(BIN)
@@ -17,6 +17,6 @@ all: $(BIN)
 	make -C ../platform/
 
 clean:
-	rm -vf *.bin *.csv *.trace *.plist
+	rm -vf bin/*.bin traces/*.csv traces/*.trace traces/*.plist
 
 .PHONY: clean

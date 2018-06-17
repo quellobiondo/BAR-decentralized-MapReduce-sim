@@ -49,6 +49,8 @@ int MRSG_main(const char* plat, const char* depl, const char* conf) {
 			"--cfg=tracing/categorized:1", "--cfg=tracing/uncategorized:1",
 			"--cfg=viva/categorized:cat.plist",
 			"--cfg=viva/uncategorized:uncat.plist" };
+//	int argc = 3;
+//	char* argv[] = { "mrsg", "--cfg=tracing:1", "--cfg=tracing/platform:1" };
 
 	msg_error_t res = MSG_OK;
 
@@ -136,7 +138,6 @@ static void read_mr_config_file(const char* file_name) {
 
 
 	/* Read the user configuration file. */
-
 	file = fopen(file_name, "r");
 
 	xbt_assert(file != NULL, "Error reading cofiguration file: %s", file_name);
@@ -214,6 +215,9 @@ static void init_config(void) {
 	}
 
 	config.workers = xbt_new(msg_host_t, config.number_of_workers);
+
+	//update the real number of byzantine nodes
+	config.byzantine = config.number_of_workers*config.byzantine/100;
 
 	wid = 0;
 	config.grid_cpu_power = 0.0;
