@@ -54,5 +54,7 @@ dkms.conf
 
 # Experiment execution output
 experiments/tasks.csv
+experiments/*.trace
+experiments/*.plist
 
 

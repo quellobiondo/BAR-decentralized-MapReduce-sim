@@ -43,7 +43,7 @@ int main (int argc, char* argv[])
     /* Set the map output function. */
     MRSG_set_map_output_f (my_map_output_function);
     /* Run the simulation. */
-    MRSG_main ("platforms/g5k.xml", "deployments/small_cluster.deploy.xml", "configurations/hello.conf");
+    MRSG_main ("platforms/g5k.xml", "deployments/small_cluster.deploy.xml", "configurations/deadlock.conf");
 
     return 0;
 }
