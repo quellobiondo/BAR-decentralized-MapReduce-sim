@@ -24,6 +24,8 @@ along with MRSG.  If not, see <http://www.gnu.org/licenses/>. */
 #include <xbt/asserts.h>
 #include "mrsg.h"
 
+// #define VERBOSE
+
 /* Hearbeat parameters. */
 #define HEARTBEAT_MIN_INTERVAL 3
 #define HEARTBEAT_TIMEOUT 600
@@ -175,6 +177,8 @@ msg_error_t send_sms (const char* str, const char* mailbox);
  * @return The status of the transfer.
  */
 msg_error_t receive (msg_task_t* msg, const char* mailbox);
+
+msg_error_t receiveTimeout(msg_task_t* msg, const char* mailbox, double timeout);
 
 /** 
  * @brief  Compare the message from a task with a string.

@@ -29,7 +29,7 @@
 	<host id="100292843" coordinates="-41.8 -30.9 5.8" power="700Mf" />
 	<host id="100309685" coordinates="-9.9 10.4 1.9" power="2.3Gf" />
 	<host id="100315281" coordinates="8.5 15.3 31.9" power="2.2Gf" />
-	<host id="100317715" coordinates="6.0 -12.6 7.0" power="1.7Gf" />
+	<host id="100317715" coordinates="6.0 -12.6 7.0" power="1.7Gf"/>
 	<host id="100324694" coordinates="89.6 26.1 17.9" power="2.2Gf" />
 	<host id="100326641" coordinates="13.9 -31.4 8.2" power="1.5Gf" />
 	<host id="100331484" coordinates="13.6 10.0 25.0" power="2.2Gf" />
@@ -43,6 +43,6 @@
 	<host id="100416828" coordinates="30.4 18.9 3.5" power="1.3Gf" />
 	<host id="100422926" coordinates="-23.1 -7.6 39.9" power="1.6Gf" />
 	<host id="100427449" coordinates="135.5 -21.0 83.4" power="1.4Gf" />
-	<host id="100429957" coordinates="17.5 6.7 18.8" power="830Mf" />
+	<host id="100429957" coordinates="17.5 6.7 18.8" power="830Mf"  />
 	</AS>
 </platform>

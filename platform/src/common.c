@@ -58,6 +58,18 @@ msg_error_t receive(msg_task_t* msg, const char* mailbox) {
 	return status;
 }
 
+msg_error_t receiveTimeout(msg_task_t* msg, const char* mailbox, double timeout) {
+	msg_error_t status;
+	status = MSG_task_receive_with_timeout(msg, mailbox, timeout);
+
+#ifdef VERBOSE
+	if (status != MSG_OK)
+	XBT_INFO ("ERROR %d RECEIVING MESSAGE", status);
+#endif
+
+	return status;
+}
+
 int message_is(msg_task_t msg, const char* str) {
 	if (strcmp(MSG_task_get_name(msg), str) == 0)
 		return TRUE;

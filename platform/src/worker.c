@@ -80,9 +80,8 @@ int worker(int argc, char* argv[]) {
  */
 static void heartbeat(void) {
 	while (!job.finished) {
-
 		// TODO to replace with BAR fault tolerant mechanism
-		send_sms(SMS_HEARTBEAT, DLT_MAILBOX);
+		// send_sms(SMS_HEARTBEAT, DLT_MAILBOX);
 		MSG_process_sleep(config.heartbeat_interval);
 	}
 }
@@ -102,6 +101,9 @@ static int listen(int argc, char* argv[]) {
 	while (!job.finished) {
 		current_task = NULL;
 		status = receive(&current_task, mailbox);
+	#ifdef VERBOSE
+		XBT_INFO ("INFO: received a task");
+	#endif
 
 		if (status == MSG_OK && message_is(current_task, SMS_TASK)) {
 			MSG_process_create("compute", compute, current_task, localhost);
@@ -146,6 +148,10 @@ static int compute(int argc, char* argv[]) {
 		break;
 	}
 
+	#ifdef VERBOSE
+		XBT_INFO ("INFO: start %s execution", ti->phase == MAP ? "MAP" : "REDUCE");
+	#endif
+
 	TRACE_host_set_state(MSG_host_get_name(MSG_host_self()), ti->phase == MAP ? "MAP-EXECUTION" : "REDUCE-EXECUTION", "BEGIN");
 	if (job.task_status[ti->phase][ti->id] != T_STATUS_DONE) {
 
@@ -166,7 +172,7 @@ static int compute(int argc, char* argv[]) {
 	 * How the heartbeats are incremented
 	 * What is slots_av?
 	 * */
-	job.heartbeats[ti->wid].slots_av[ti->phase]++;
+	// NOT HERE, BUT IN THE SCHEDULER job.heartbeats[ti->wid].slots_av[ti->phase]++;
 
 	// TODO: update, send just to the blockchain
 	if (!job.finished)
@@ -192,6 +198,9 @@ static void get_chunk(task_info_t ti) {
 	 * Here the model have to be changed, why?
 	 * The idea was that in general I have to require the data-chunk to just one simple node... and then the recovery mechanism in case of fault.
 	 * */
+#ifdef VERBOSE
+	XBT_INFO ("INFO: start chunk copy");
+#endif
 
 	/* Request the chunk to the source node. if it's not me */
 	if (ti->src != my_id) {
@@ -204,6 +213,9 @@ static void get_chunk(task_info_t ti) {
 				MSG_task_destroy(task);
 		}
 	}
+#ifdef VERBOSE
+	XBT_INFO ("INFO: end chunk copy");
+#endif
 }
 
 /**

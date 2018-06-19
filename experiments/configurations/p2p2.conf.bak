@@ -1,9 +1,9 @@
-reduces 21
-chunk_size 100
+reduces 3
+chunk_size 64
 input_chunks 10
 dfs_replicas 200
 map_slots 1
 reduce_slots 1
-byzantine 1
-block_period 10
+byzantine 15
+block_period 15
 block_size 1000

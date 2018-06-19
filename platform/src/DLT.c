@@ -14,6 +14,32 @@
 
 XBT_LOG_EXTERNAL_DEFAULT_CATEGORY(msg_test);
 
+typedef struct {
+	msg_task_t msg;
+	msg_host_t source;
+} tx;
+
+tx pool_tx[MAX_SIZE_POOL_TX];
+int pool_size = 0;
+
+int TrasactionPoolWorker(int argc, char *argv[]){
+	tx new_tx;
+	int pool_index = 0;
+
+	while(!job.finished){
+		// forward first config.blockdimension messages to master
+		for(; MSG_task_listen(DLT_MAILBOX) && pool_size < MAX_SIZE_POOL_TX; pool_size++){
+			new_tx.msg = NULL;
+			xbt_assert(receive(&new_tx.msg, DLT_MAILBOX) == MSG_OK, "ERROR RECEIVING MESSAGES");
+			new_tx.source = MSG_task_get_source(new_tx.msg);
+			pool_tx[pool_index] = new_tx;
+			pool_index = (pool_index+1) % MAX_SIZE_POOL_TX;
+		}
+		MSG_process_sleep(0.5);
+	}
+	return 0;
+}
+
 /**
  * @brief  Main DLT function.
  * this is the main function for the DLT node, it loops to receive messages, then it waits for
@@ -26,9 +52,15 @@ XBT_LOG_EXTERNAL_DEFAULT_CATEGORY(msg_test);
  */
 int DLT(int argc, char *argv[]){
 	msg_task_t task_envelope = NULL;
-	msg_task_t msg = NULL;
 	DLT_block_t block = NULL;
+	int tx_aggregated = 0;
+	int transferred_index = 0;
 	const char* hostname = MSG_host_get_name(MSG_host_self());
+
+	xbt_assert(MAX_SIZE_POOL_TX > config.block_size);
+
+	/* Spawn a process that listens for tasks. */
+	MSG_process_create("tx-aggregator", TrasactionPoolWorker, NULL, MSG_host_self());
 
 	block = xbt_new(struct DLT_block_s, 1);
 	block->original_messages = xbt_new(msg_task_t, config.block_size);
@@ -44,20 +76,35 @@ int DLT(int argc, char *argv[]){
 	//	loop until we end the master stuff
 	while (!job.finished) {
 		TRACE_host_set_state(hostname, "BLOCK", "COMPUTATION");
+
+		#ifdef VERBOSE
+			XBT_INFO ("INFO Computing time to create a BLOCK");
+		#endif
 		// block for config.period_blockchain
-		xbt_sleep(max(config.block_period, 0.1));
+		MSG_process_sleep(max(config.block_period, 0.1));
+
+		tx_aggregated = pool_size;
+		#ifdef VERBOSE
+			XBT_INFO ("INFO sending %d transactions aggregated", tx_aggregated);
+		#endif
+
 
 		TRACE_host_set_state(hostname, "BLOCK", "AGGREGATION");
 
 		// forward first config.blockdimension messages to master
-		for(block->size = 0; block->size < config.block_size && MSG_task_listen(DLT_MAILBOX); block->size++){
-			msg = NULL;
-			xbt_assert(receive(&msg, DLT_MAILBOX) == MSG_OK, "ERROR RECEIVING MESSAGES");
-			block->original_messages[block->size] = msg;
-			block->original_senders[block->size]=MSG_task_get_source(msg);
+		for(block->size = 0; block->size < config.block_size && block->size < tx_aggregated; block->size++){
+			block->original_messages[block->size] = pool_tx[transferred_index].msg;
+			block->original_senders[block->size]= pool_tx[transferred_index].source;
+			transferred_index = (transferred_index+1) %  MAX_SIZE_POOL_TX;
 		}
 
+		pool_size -= block->size; //remove from the tx pool the transactions sent
+
 		if(block->size == 0) continue;
+
+		#ifdef VERBOSE
+			XBT_INFO ("Sendin BLOCK");
+		#endif
 
 		TRACE_host_variable_set(hostname, "TRANSACTIONS", block->size);
 

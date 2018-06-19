@@ -39,25 +39,37 @@ static void send_task(enum phase_e phase, size_t tid, size_t data_src,
 char* task_type_string(enum task_type_e task_type);
 static void finish_all_task_copies(task_info_t ti);
 static int enough_result_confirmation(task_info_t ti);
+void scheduleFunction(void);
+void processTaskCompletion(task_info_t ti, msg_host_t worker);
+
+
+int *capacity[2]; //[PHASE][WORKER] number of free slots in that worker
 
 /** @brief  Main master function. */
 int master(int argc, char* argv[]) {
-	heartbeat_t heartbeat;
+//	heartbeat_t heartbeat;
 	msg_error_t status;
 	msg_host_t worker;
 	msg_task_t msg = NULL, original_msg = NULL;
 	DLT_block_t block = NULL;
-	size_t wid;
 	task_info_t ti;
 	msg_process_t DLT_process;
-	int tx_counter;
+	int tx_counter, i;
+
+	capacity[MAP] = xbt_new0(int, config.number_of_workers);
+	capacity[REDUCE] = xbt_new0(int, config.number_of_workers);
+	for(i=0; i<config.number_of_workers; i++){
+		capacity[MAP][i] = config.slots[MAP];
+		capacity[REDUCE][i] = config.slots[REDUCE];
+	}
+
 
 	TRACE_host_state_declare("MAP");
 	TRACE_host_state_declare("REDUCE");
 
-	TRACE_host_state_declare_value("MAP", "BEGIN", "0.7 0.7 0.7");
+	TRACE_host_state_declare_value("MAP", "START", "0.7 0.7 0.7");
 	TRACE_host_state_declare_value("MAP", "END", "0.7 0.7 0.7");
-	TRACE_host_state_declare_value("REDUCE", "BEGIN", "0.1 0.7 0.1");
+	TRACE_host_state_declare_value("REDUCE", "START", "0.1 0.7 0.1");
 	TRACE_host_state_declare_value("REDUCE", "END", "0.1 0.7 0.1");
 
 	/* Spawn a process to exchange data with other workers. */
@@ -72,65 +84,36 @@ int master(int argc, char* argv[]) {
 
 	// while we have at least a task pending (MAP/REDUCE)
 	while (job.tasks_pending[MAP] + job.tasks_pending[REDUCE] > 0) {
-		// TODO this process have to be blocked for a while to emulate the blockchain
+		// schedule the tasks
+		scheduleFunction();
 
 		msg = NULL;
-		status = receive(&msg, MASTER_MAILBOX);
+		status = receiveTimeout(&msg, MASTER_MAILBOX, 1);
+
 		if (status == MSG_OK) {
 			xbt_assert(message_is(msg, SMS_DLT_BLOCK), "Master received a message that is not from the DLT!");
 			block = (DLT_block_t) MSG_task_get_data(msg);
+			#ifdef VERBOSE
+				XBT_INFO ("INFO: Received a BLOCK");
+			#endif
 
 			for(tx_counter = 0; tx_counter < block->size; tx_counter++){
 				worker = block->original_senders[tx_counter];
-				wid = get_worker_id(worker);
 
 				original_msg = block->original_messages[tx_counter];
 
-				if (message_is(original_msg, SMS_HEARTBEAT)) {
-					heartbeat = &job.heartbeats[wid];
-
-					if (is_straggler(worker)) {
-						set_speculative_tasks(worker);
-					}
-					//TODO to check that in this way we don't assign to the stragglers too many tasks
-
-					// let's assign to this worker its task to execute (map/reduce) for all the availables slots
-					if (heartbeat->slots_av[MAP] > 0)
-						send_scheduler_task(MAP, wid);
-
-					if (heartbeat->slots_av[REDUCE] > 0)
-						send_scheduler_task(REDUCE, wid);
-
-				} else if (message_is(original_msg, SMS_TASK_DONE)) {
+				if (message_is(original_msg, SMS_TASK_DONE)) {
 					ti = (task_info_t) MSG_task_get_data(original_msg);
-
-					// increment result confirmations
-					job.task_confirmations[ti->phase][ti->id]++;
-
-					if (enough_result_confirmation(ti)){
-						// mark that task as done and finish everything
-						// task finished, clean up and communicate
-						if (job.task_status[ti->phase][ti->id] != T_STATUS_DONE) {
-							job.task_status[ti->phase][ti->id] = T_STATUS_DONE;
-
-							finish_all_task_copies(ti); // pre-emption
-							job.tasks_pending[ti->phase]--;
-							if (job.tasks_pending[ti->phase] <= 0) {
-								XBT_INFO(" ");
-								XBT_INFO("%s PHASE DONE",
-										(ti->phase == MAP ? "MAP" : "REDUCE"));
-								XBT_INFO(" ");
-								TRACE_host_set_state(MSG_host_get_name(MSG_host_self()), (ti->phase == MAP ? "MAP" : "REDUCE"), "END");
-							}
-						}
-						xbt_free_ref(&ti);
-					}
+					processTaskCompletion(ti, worker);
 				}
 				MSG_task_destroy(original_msg);
 			}
 			MSG_task_destroy(msg);
 		}
 	}
+
+	xbt_free_f(capacity[MAP]);
+	xbt_free_f(capacity[REDUCE]);
 
 	fclose(tasks_log);
 
@@ -144,6 +127,55 @@ int master(int argc, char* argv[]) {
 	XBT_INFO("JOB END");
 
 	return 0;
+}
+
+void processTaskCompletion(task_info_t ti, msg_host_t worker){
+	// increment result confirmations
+	job.task_confirmations[ti->phase][ti->id]++;
+	capacity[ti->phase][get_worker_id(worker)]++;
+
+	if (enough_result_confirmation(ti)){
+		// mark that task as done and finish everything
+		// task finished, clean up and communicate
+		if (job.task_status[ti->phase][ti->id] != T_STATUS_DONE) {
+			job.task_status[ti->phase][ti->id] = T_STATUS_DONE;
+
+			finish_all_task_copies(ti); // pre-emption
+			job.tasks_pending[ti->phase]--;
+
+			if (job.tasks_pending[ti->phase] <= 0) {
+				XBT_INFO(" ");
+				XBT_INFO("%s PHASE DONE",
+						(ti->phase == MAP ? "MAP" : "REDUCE"));
+				XBT_INFO(" ");
+				TRACE_host_set_state(MSG_host_get_name(MSG_host_self()), (ti->phase == MAP ? "MAP" : "REDUCE"), "END");
+			}
+		}
+		xbt_free_ref(&ti);
+	}
+}
+
+void scheduleFunction(void){
+	msg_host_t worker;
+	size_t worker_index;
+	size_t index;
+
+	for(worker_index = 0; worker_index < config.number_of_workers; worker_index++){
+		worker = config.workers[worker_index];
+
+		if (is_straggler(worker)) {
+			set_speculative_tasks(worker);
+		}
+		//TODO to check that in this way we don't assign to the stragglers too many tasks
+		// check if this worker can do more work
+
+		for(index = capacity[MAP][worker_index]; index > 0; index--){
+			send_scheduler_task(MAP, worker_index);
+		}
+		for(index = capacity[REDUCE][worker_index]; index > 0; index--){
+			send_scheduler_task(REDUCE, worker_index);
+		}
+	}
 }
 
 /** @brief  Print the job configuration. */
@@ -186,7 +218,7 @@ static void print_stats(void) {
 
 /**
  * @brief  Checks if a worker is a straggler.
- * @param  worker  The worker to be probed.
+ * @param  worker  The worker to be probed
  * @return 1 if true, 0 if false.
  */
 static int is_straggler(msg_host_t worker) {
@@ -198,9 +230,9 @@ static int is_straggler(msg_host_t worker) {
 	/*
 	 * Number of tasks currently executed (number of slots per node - slots available = slot occupied = task currently executed)
 	 */
+
 	task_count = (config.slots[MAP] + config.slots[REDUCE])
-			- (job.heartbeats[wid].slots_av[MAP]
-					+ job.heartbeats[wid].slots_av[REDUCE]);
+				- (capacity[MAP][wid] + capacity[REDUCE][wid]);
 
 	if (MSG_get_host_speed(worker) < config.grid_average_speed
 			&& task_count > 0)
@@ -257,7 +289,8 @@ static void set_speculative_tasks(msg_host_t worker) {
 	for(phase_index = 0; phase_index < 2; phase_index++){
 		phase = phases[phase_index];
 
-		if (job.heartbeats[wid].slots_av[phase] < config.slots[phase]) {
+		//if (job.heartbeats[wid].slots_av[phase] < config.slots[phase]) {
+		if(capacity[phase][wid] < config.slots[phase]){
 			for (tid = 0; tid < config.amount_of_tasks[phase]; tid++) {
 				if (job.task_list[phase][tid][wid] != NULL && job.task_status[phase][tid] == T_STATUS_TIP) {
 					//the task has to be already assigned to the straggler and it has to be in the running phase
@@ -363,6 +396,7 @@ static void send_task(enum phase_e phase, size_t tid, size_t data_src,
 	double cpu_required = 0.0;
 	msg_task_t task = NULL;
 	task_info_t task_info;
+	//msg_error_t status;
 
 	// for fault-tolerance we don't want to reassign a task to the same node
 	xbt_assert(job.task_list[phase][tid][wid] == NULL);
@@ -392,7 +426,8 @@ static void send_task(enum phase_e phase, size_t tid, size_t data_src,
 			job.task_status[phase][tid] = T_STATUS_TIP;
 	}
 
-	job.heartbeats[wid].slots_av[phase]--; //okay, it just tell that there is a slot that is less available
+	capacity[phase][wid]--;
+	//job.heartbeats[wid].slots_av[phase]--; //okay, it just tell that there is a slot that is less available
 
 	TRACE_host_set_state(MSG_host_get_name(MSG_host_self()), (phase == MAP ? "MAP" : "REDUCE"), "START");
 	fprintf(tasks_log, "%d_%zu_%lu,%s,%zu,%.3f,START,\n", phase, tid, wid,
