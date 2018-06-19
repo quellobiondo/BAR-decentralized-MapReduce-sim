@@ -9,4 +9,13 @@ To execute:
 - Make simulation platform
 - Make Experiment definitions
 - Execute the experiment
+
+The easy way with [Docker]():
+```
+docker build -t simgrid:3.11.1 -f Tools/SimGrid.Dockerfile .
+docker build -t experiment .
+docker run -v "$PWD/analysis/traces:/home/experiment/experiments/traces" experiment bin/hello.bin
+```
+
 - Analyze data
+

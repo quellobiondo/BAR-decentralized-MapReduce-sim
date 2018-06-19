@@ -56,5 +56,5 @@ dkms.conf
 experiments/tasks.csv
 experiments/*.trace
 experiments/*.plist
-
+experiments/log.txt
 
