@@ -24,3 +24,5 @@ ggplot(data, aes(Byzantine, TotalDuration, color = Platform)) +
   geom_point(aes(shape = Config), size=3) +
   geom_smooth() +
   labs(title = "Completion time increase with % byzantine nodes")
+
+ggsave("completion_time.jpg")
