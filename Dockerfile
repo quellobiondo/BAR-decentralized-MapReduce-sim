@@ -11,8 +11,10 @@ COPY --chown=experiment ./experiments /home/experiment/experiments
 
 WORKDIR experiments
 
+COPY --chown=experiment ./Tools/entrypoint.sh /home/experiment/experiments
+
 RUN make clean all
 
 ENV LD_LIBRARY_PATH /usr/local/lib/
 
-CMD [ "/bin/bash" ]
+ENTRYPOINT [ "./entrypoint.sh" ]

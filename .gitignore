@@ -58,3 +58,4 @@ experiments/*.trace
 experiments/*.plist
 experiments/log.txt
 
+.Rproj.user

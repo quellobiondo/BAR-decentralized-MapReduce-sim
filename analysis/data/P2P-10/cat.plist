@@ -1,0 +1,13 @@
+  node = ("HOST");
+  edge = ("0-HOST1-HOST1");
+
+  host = {
+    type = "square";
+    size = "power";
+    values = ("pREDUCE","pMAP");
+  };
+  link = {
+    type = "rhombus";
+    size = "bandwidth";
+    values = ("bREDUCE","bMAP");
+  };
