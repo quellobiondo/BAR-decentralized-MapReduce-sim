@@ -1,7 +1,7 @@
 library(tidyverse)
 library(ggrepel)
 
-file_name <- "data/completiontime.csv"
+file_name <- "data/completion_time.csv"
 
 data <- read_csv(file_name, col_names = TRUE, trim_ws = TRUE, col_types = 
                    cols(
@@ -20,9 +20,7 @@ data <- read_csv(file_name, col_names = TRUE, trim_ws = TRUE, col_types =
 data <- mutate(data, CompleteTopology=paste(Topology, NumberOfNodes))
 
 ggplot(data, aes(Byzantine, TotalDuration, color = Platform)) +
+  facet_wrap(~CompleteTopology) +
   geom_point(aes(shape = Config), size=3) +
   geom_smooth() +
-  facet_wrap(~CompleteTopology) +
   labs(title = "Completion time increase with % byzantine nodes")
-
-

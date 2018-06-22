@@ -43,6 +43,7 @@ static void init_stats(void);
 static void free_global_mem(void);
 
 int MRSG_main(const char* plat, const char* depl, const char* conf) {
+
 	int argc = 8;
 	char* argv[] = { "mrsg", "--cfg=tracing:1", "--cfg=tracing/buffer:1",
 			"--cfg=tracing/filename:traces/tracefile.trace",
