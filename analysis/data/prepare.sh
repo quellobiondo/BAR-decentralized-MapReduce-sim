@@ -104,8 +104,9 @@ do
             echo "- $NAME"
 
             PLATFORM=${NAME%%-*}
-            BYZANTINE_PERC=${NAME##*-}
-            CONFIGURATION="Wordcount"
+            T=${NAME%-*}
+            BYZANTINE_PERC=${T##*-}
+            CONFIGURATION=${NAME##*-}
 
             StateTraceFile="state.$NAME.csv"
             VariableTraceFile="variable.$NAME.csv"

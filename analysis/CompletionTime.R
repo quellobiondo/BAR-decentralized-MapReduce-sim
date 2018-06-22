@@ -3,7 +3,7 @@ library(ggrepel)
 
 file_name <- "data/completiontime.csv"
 
-data <- read_csv(file_name, col_names = TRUE, trim_ws = FALSE, col_types = 
+data <- read_csv(file_name, col_names = TRUE, trim_ws = TRUE, col_types = 
                    cols(
                      Topology = col_character(),
                      NumberOfNodes = col_integer(),

@@ -23,7 +23,7 @@ function ExecuteExperiment {
 
     for BYZ_VALUE in "${BYZ_VALUES[@]}" do 
         echo "- - $BYZ_VALUE"
-        LOCAL_TRACE="$LOCAL_TRACE_DIR/$NAME-$BYZ_VALUE.trace"
+        LOCAL_TRACE="$LOCAL_TRACE_DIR/$NAME-$BYZ_VALUE-$EXPERIMENT_CONFIGURATION.trace"
         CONTAINER_TRACE="/home/experiment/experiments/traces/tracefile.trace"
         docker run -v "$LOCAL_TRACE:$CONTAINER_TRACE" experiment "$EXPERIMENT_EXECUTABLE" "$EXPERIMENT_CONFIGURATION" "$TOPOLOGY"
     done
@@ -33,9 +33,9 @@ function ExecuteExperiment {
 echo "Executing MARS experiments"
 DOCKER_CONTAINER="experiment" # Put here the name of the container to run the experiment
 echo "- Cluster-10"
-ExecuteExperiment "MARS" array(0, 10, 20, 30) "Cluster-10" "experiment"
+ExecuteExperiment "MARS" array(0, 10, 20, 30) "Cluster-10" $DOCKER_CONTAINER
 echo "- Cluster-100"
-ExecuteExperiment "MARS" array(0, 1, 2, 3, 4, 5, 10, 15, 20, 25, 30) "Cluster-100" "experiment"
+ExecuteExperiment "MARS" array(0, 1, 2, 3, 4, 5, 10, 15, 20, 25, 30) "Cluster-100" $DOCKER_CONTAINER
 
 ### HERE Blockchain
 

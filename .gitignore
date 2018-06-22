@@ -58,4 +58,9 @@ experiments/*.trace
 experiments/*.plist
 experiments/log.txt
 
+# Data Analysis traces
+analysis/data/*/*.trace
+analysis/data/*/*.csv
+analysis/data/*/*.plist
+
 .Rproj.user
