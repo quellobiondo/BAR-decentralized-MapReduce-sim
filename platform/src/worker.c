@@ -19,7 +19,7 @@
 #include "dfs.h"
 #include "worker.h"
 
-XBT_LOG_EXTERNAL_DEFAULT_CATEGORY(msg_test); // @suppress("Unused variable declaration in file scope")
+XBT_LOG_EXTERNAL_DEFAULT_CATEGORY( msg_test); // @suppress("Unused variable declaration in file scope")
 
 static void heartbeat(void);
 static int listen(int argc, char* argv[]);
@@ -45,6 +45,23 @@ int worker(int argc, char* argv[]) {
 	msg_host_t me;
 
 	me = MSG_host_self();
+
+	TRACE_host_state_declare("MAP-INPUT-FETCHING");
+	TRACE_host_state_declare("REDUCE-INPUT-FETCHING");
+	TRACE_host_state_declare("MAP-EXECUTION");
+	TRACE_host_state_declare("REDUCE-EXECUTION");
+
+	TRACE_host_state_declare_value("MAP-INPUT-FETCHING", "BEGIN",
+			"0.7 0.7 0.7");
+	TRACE_host_state_declare_value("MAP-INPUT-FETCHING", "END", "0.7 0.7 0.7");
+	TRACE_host_state_declare_value("REDUCE-INPUT-FETCHING", "BEGIN",
+			"0.1 0.7 0.1");
+	TRACE_host_state_declare_value("REDUCE-INPUT-FETCHING", "END",
+			"0.1 0.7 0.1");
+	TRACE_host_state_declare_value("MAP-EXECUTION", "BEGIN", "0.1 0.7 0.1");
+	TRACE_host_state_declare_value("MAP-EXECUTION", "END", "0.1 0.7 0.1");
+	TRACE_host_state_declare_value("REDUCE-EXECUTION", "BEGIN", "0.1 0.7 0.1");
+	TRACE_host_state_declare_value("REDUCE-EXECUTION", "END", "0.1 0.7 0.1");
 
 	/* Spawn a process that listens for tasks. */
 	MSG_process_create("listen", listen, NULL, me);
@@ -120,27 +137,42 @@ static int compute(int argc, char* argv[]) {
 	 * */
 	switch (ti->phase) {
 	case MAP:
+		TRACE_host_set_state(MSG_host_get_name(MSG_host_self()),
+				"MAP-INPUT-FETCHING", "BEGIN");
 		get_chunk(ti);
+		TRACE_host_set_state(MSG_host_get_name(MSG_host_self()),
+				"MAP-INPUT-FETCHING", "END");
 		break;
 
 	case REDUCE:
+		TRACE_host_set_state(MSG_host_get_name(MSG_host_self()),
+				"REDUCE-INPUT-FETCHING", "BEGIN");
 		get_map_output(ti);
+		TRACE_host_set_state(MSG_host_get_name(MSG_host_self()),
+				"REDUCE-INPUT-FETCHING", "END");
 		break;
 	}
 
+	TRACE_host_set_state(MSG_host_get_name(MSG_host_self()),
+			ti->phase == MAP ? "MAP-EXECUTION" : "REDUCE-EXECUTION", "BEGIN");
 	if (job.task_status[ti->phase][ti->id] != T_STATUS_DONE) {
 
-		TRY{
+		TRY
+		{
 			status = MSG_task_execute(task);
 
 			if (ti->phase == MAP && status == MSG_OK)
-				update_intermediate_result_owner(ti->id, get_worker_id(MSG_host_self()));
-			}
-		CATCH(e){
+				update_intermediate_result_owner(ti->id,
+						get_worker_id(MSG_host_self()));
+		}
+		CATCH(e)
+		{
 			xbt_assert(e.category == cancel_error, "%s", e.msg);
 			xbt_ex_free(e);
 		}
 	}
+	TRACE_host_set_state(MSG_host_get_name(MSG_host_self()),
+			ti->phase == MAP ? "MAP-EXECUTION" : "REDUCE-EXECUTION", "END");
 
 	/*
 	 * How the heartbeats are incremented
@@ -214,7 +246,7 @@ static void get_map_output(task_info_t ti) {
 
 	// I have to copy all the intermediate MAP results for my key
 	for (map_index = 0; map_index < config.amount_of_tasks[MAP]; map_index++) {
-		ti -> map_id = map_index;
+		ti->map_id = map_index;
 
 		// FIXME can be cleaned better, for example using a signal...
 		if (job.task_status[REDUCE][ti->id] == T_STATUS_DONE) {
@@ -223,29 +255,31 @@ static void get_map_output(task_info_t ti) {
 		}
 
 		// check if this map is finished without producing any data
-		if(job.map_output[map_index][ti->id] <= 0 && job.task_status[MAP][map_index] == T_STATUS_DONE){
+		if (job.map_output[map_index][ti->id] <= 0
+				&& job.task_status[MAP][map_index] == T_STATUS_DONE) {
 			continue; //nothing to download from this map_id
 		}
 
 		// We need to wait the moment in which the task has completed to copy the data...
 		// Of course we can do this process more efficient, without blocking the whole queue first
 		// secondly streaming the intermediate data...
-		while(job.task_status[MAP][map_index] != T_STATUS_DONE){
+		while (job.task_status[MAP][map_index] != T_STATUS_DONE) {
 			xbt_sleep(0.1);
 		}
 
 		// check if I have it locally
-		if(map_output_owner[map_index][ti->id][my_id]){
+		if (map_output_owner[map_index][ti->id][my_id]) {
 			data_copied[map_index] = user.map_output_f(map_index, ti->id);
 			total_copied += user.map_output_f(map_index, ti->id);
 
 			stats.reduce_local_map_result++;
-		}else{
+		} else {
 			// if this map id has produced data that I need and I didn't downloaded yet, I'll do it right now
 			// loop on this map task until we'll finish to download all the data needed
-			while(job.map_output[map_index][ti->id] > data_copied[map_index]){
+			while (job.map_output[map_index][ti->id] > data_copied[map_index]) {
 
-				other_worker = find_random_intermediate_result_owner(map_index, ti->id);
+				other_worker = find_random_intermediate_result_owner(map_index,
+						ti->id);
 				sprintf(mailbox, DATANODE_MAILBOX, other_worker);
 				status = send(SMS_GET_INTER_PAIRS, 0.0, 0.0, ti, mailbox);
 

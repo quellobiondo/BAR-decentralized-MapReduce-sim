@@ -7,7 +7,7 @@ INCLUDES = -Iinclude -I$(INSTALL_PATH)/include
 DEFS = -L$(INSTALL_PATH)/lib
 LDADD = -lm -lsimgrid
 
-BIN = libmrsg.a
+BIN = libhadoopbft.a
 OBJ = bin/common.o bin/simcore.o bin/dfs.o bin/master.o bin/worker.o bin/user.o bin/scheduling.o
 
 all: $(BIN)

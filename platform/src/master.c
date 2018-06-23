@@ -53,6 +53,14 @@ int master(int argc, char* argv[]) {
 	XBT_INFO("JOB BEGIN");
 	XBT_INFO(" ");
 
+	TRACE_host_state_declare("MAP");
+	TRACE_host_state_declare("REDUCE");
+
+	TRACE_host_state_declare_value("MAP", "START", "0.7 0.7 0.7");
+	TRACE_host_state_declare_value("MAP", "END", "0.7 0.7 0.7");
+	TRACE_host_state_declare_value("REDUCE", "START", "0.1 0.7 0.1");
+	TRACE_host_state_declare_value("REDUCE", "END", "0.1 0.7 0.1");
+
 	tasks_log = fopen("tasks.csv", "w");
 	fprintf(tasks_log, "task_id,phase,worker_id,time,action,shuffle_end\n");
 
@@ -100,6 +108,7 @@ int master(int argc, char* argv[]) {
 							XBT_INFO("%s PHASE DONE",
 									(ti->phase == MAP ? "MAP" : "REDUCE"));
 							XBT_INFO(" ");
+							TRACE_host_set_state(MSG_host_get_name(MSG_host_self()), (ti->phase == MAP ? "MAP" : "REDUCE"), "END");
 						}
 					}
 					xbt_free_ref(&ti);
@@ -205,7 +214,7 @@ static int enough_result_confirmation(task_info_t ti){
  * Improvement idea: consider also the failures like in MOON?
  */
 static int number_of_task_replicas(){
-	int necessary_replicas_to_be_BFT = 2*config.byzantine + 1;
+	int necessary_replicas_to_be_BFT = config.byzantine + 1;
 	return min(config.number_of_workers, necessary_replicas_to_be_BFT);
 }
 
@@ -380,6 +389,7 @@ static void send_task(enum phase_e phase, size_t tid, size_t data_src,
 
 	fprintf(tasks_log, "%d_%zu_%lu,%s,%zu,%.3f,START,\n", phase, tid, wid,
 			(phase == MAP ? "MAP" : "REDUCE"), wid, MSG_get_clock());
+	TRACE_host_set_state(MSG_host_get_name(MSG_host_self()), (phase == MAP ? "MAP" : "REDUCE"), "START");
 
 #ifdef VERBOSE
 	XBT_INFO ("TX: %s > %s", SMS_TASK, MSG_host_get_name (config.workers[wid]));
