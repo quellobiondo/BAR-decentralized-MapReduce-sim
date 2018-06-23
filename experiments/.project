@@ -3,6 +3,7 @@
 	<name>Experiment</name>
 	<comment></comment>
 	<projects>
+		<project>Platform</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>

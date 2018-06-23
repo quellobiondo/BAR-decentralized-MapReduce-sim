@@ -1,0 +1,1324 @@
+<?xml version='1.0'?>
+<!DOCTYPE platform SYSTEM "http://simgrid.gforge.inria.fr/simgrid.dtd">
+<platform version="3">
+	<process host="graphene-1.nancy.grid5000.fr" function="master" />
+	<process host="graphene-2.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-3.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-4.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-5.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-6.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-7.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-8.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-9.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-10.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-11.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-12.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-13.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-14.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-15.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-16.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-17.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-18.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-19.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-20.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-21.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-22.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-23.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-24.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-25.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-26.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-27.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-28.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-29.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-30.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-31.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-32.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-33.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-34.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-35.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-36.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-37.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-38.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-39.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-40.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-41.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-42.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-43.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-44.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-45.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-46.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-47.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-48.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-49.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-50.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-51.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-52.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-53.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-54.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-55.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-56.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-57.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-58.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-59.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-60.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-61.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-62.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-63.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-64.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-65.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-66.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-67.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-68.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-69.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-70.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-71.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-72.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-73.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-74.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-75.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-76.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-77.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-78.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-79.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-80.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-81.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-82.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-83.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-84.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-85.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-86.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-87.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-88.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-89.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-90.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-91.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-92.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-93.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-94.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-95.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-96.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-97.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-98.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-99.nancy.grid5000.fr" function="worker" />
+	<process host="graphene-100.nancy.grid5000.fr"
+		function="worker" />
+	<process host="graphene-101.nancy.grid5000.fr"
+		function="worker" />
+	<process host="graphene-102.nancy.grid5000.fr"
+		function="worker" />
+	<process host="graphene-103.nancy.grid5000.fr"
+		function="worker" />
+	<process host="graphene-104.nancy.grid5000.fr"
+		function="worker" />
+	<process host="graphene-105.nancy.grid5000.fr"
+		function="worker" />
+	<process host="graphene-106.nancy.grid5000.fr"
+		function="worker" />
+	<process host="graphene-107.nancy.grid5000.fr"
+		function="worker" />
+	<process host="graphene-108.nancy.grid5000.fr"
+		function="worker" />
+	<process host="graphene-109.nancy.grid5000.fr"
+		function="worker" />
+	<process host="graphene-110.nancy.grid5000.fr"
+		function="worker" />
+	<process host="graphene-111.nancy.grid5000.fr"
+		function="worker" />
+	<process host="graphene-112.nancy.grid5000.fr"
+		function="worker" />
+	<process host="graphene-113.nancy.grid5000.fr"
+		function="worker" />
+	<process host="graphene-114.nancy.grid5000.fr"
+		function="worker" />
+	<process host="graphene-115.nancy.grid5000.fr"
+		function="worker" />
+	<process host="graphene-116.nancy.grid5000.fr"
+		function="worker" />
+	<process host="graphene-117.nancy.grid5000.fr"
+		function="worker" />
+	<process host="graphene-118.nancy.grid5000.fr"
+		function="worker" />
+	<process host="graphene-119.nancy.grid5000.fr"
+		function="worker" />
+	<process host="graphene-120.nancy.grid5000.fr"
+		function="worker" />
+	<process host="graphene-121.nancy.grid5000.fr"
+		function="worker" />
+	<process host="graphene-122.nancy.grid5000.fr"
+		function="worker" />
+	<process host="graphene-123.nancy.grid5000.fr"
+		function="worker" />
+	<process host="graphene-124.nancy.grid5000.fr"
+		function="worker" />
+	<process host="graphene-125.nancy.grid5000.fr"
+		function="worker" />
+	<process host="graphene-126.nancy.grid5000.fr"
+		function="worker" />
+	<process host="graphene-127.nancy.grid5000.fr"
+		function="worker" />
+	<process host="graphene-128.nancy.grid5000.fr"
+		function="worker" />
+	<process host="graphene-129.nancy.grid5000.fr"
+		function="worker" />
+	<process host="graphene-130.nancy.grid5000.fr"
+		function="worker" />
+	<process host="graphene-131.nancy.grid5000.fr"
+		function="worker" />
+	<process host="graphene-132.nancy.grid5000.fr"
+		function="worker" />
+	<process host="graphene-133.nancy.grid5000.fr"
+		function="worker" />
+	<process host="graphene-134.nancy.grid5000.fr"
+		function="worker" />
+	<process host="graphene-135.nancy.grid5000.fr"
+		function="worker" />
+	<process host="graphene-136.nancy.grid5000.fr"
+		function="worker" />
+	<process host="graphene-137.nancy.grid5000.fr"
+		function="worker" />
+	<process host="graphene-138.nancy.grid5000.fr"
+		function="worker" />
+	<process host="graphene-139.nancy.grid5000.fr"
+		function="worker" />
+	<process host="graphene-140.nancy.grid5000.fr"
+		function="worker" />
+	<process host="graphene-141.nancy.grid5000.fr"
+		function="worker" />
+	<process host="graphene-142.nancy.grid5000.fr"
+		function="worker" />
+	<process host="graphene-143.nancy.grid5000.fr"
+		function="worker" />
+	<process host="gdx-1.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-2.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-3.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-4.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-5.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-6.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-7.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-8.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-9.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-10.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-11.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-12.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-13.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-14.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-15.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-16.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-17.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-18.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-19.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-20.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-21.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-22.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-23.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-24.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-25.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-26.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-27.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-28.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-29.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-30.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-31.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-32.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-33.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-34.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-35.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-36.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-37.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-38.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-39.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-40.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-41.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-42.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-43.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-44.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-45.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-46.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-47.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-48.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-49.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-50.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-51.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-52.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-53.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-54.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-55.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-56.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-57.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-58.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-59.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-60.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-61.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-62.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-63.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-64.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-65.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-66.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-67.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-68.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-69.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-70.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-71.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-72.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-73.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-74.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-75.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-76.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-77.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-78.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-79.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-80.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-81.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-82.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-83.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-84.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-85.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-86.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-87.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-88.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-89.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-90.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-91.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-92.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-93.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-94.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-95.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-96.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-97.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-98.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-99.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-100.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-101.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-102.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-103.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-104.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-105.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-106.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-107.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-108.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-109.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-110.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-111.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-112.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-113.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-114.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-115.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-116.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-117.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-118.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-119.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-120.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-121.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-122.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-123.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-124.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-125.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-126.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-127.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-128.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-129.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-130.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-131.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-132.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-133.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-134.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-135.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-136.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-137.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-138.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-139.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-140.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-141.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-142.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-143.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-144.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-145.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-146.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-147.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-148.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-149.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-150.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-151.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-152.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-153.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-154.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-155.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-156.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-157.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-158.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-159.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-160.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-161.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-162.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-163.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-164.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-165.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-166.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-167.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-168.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-169.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-170.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-171.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-172.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-173.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-174.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-175.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-176.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-177.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-178.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-179.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-180.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-181.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-182.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-183.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-184.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-185.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-186.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-187.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-188.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-189.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-190.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-191.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-192.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-193.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-194.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-195.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-196.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-197.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-198.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-199.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-200.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-201.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-202.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-203.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-204.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-205.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-206.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-207.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-208.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-209.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-210.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-211.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-212.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-213.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-214.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-215.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-216.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-217.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-218.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-219.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-220.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-221.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-222.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-223.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-224.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-225.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-226.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-227.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-228.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-229.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-230.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-231.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-232.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-233.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-234.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-235.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-236.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-237.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-238.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-239.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-240.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-241.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-242.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-243.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-244.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-245.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-246.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-247.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-248.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-249.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-250.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-251.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-252.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-253.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-254.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-255.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-256.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-257.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-258.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-259.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-260.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-261.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-262.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-263.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-264.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-265.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-266.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-267.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-268.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-269.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-270.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-271.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-272.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-273.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-274.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-275.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-276.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-277.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-278.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-279.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-280.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-281.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-282.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-283.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-284.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-285.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-286.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-287.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-288.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-289.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-290.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-291.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-292.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-293.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-294.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-295.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-296.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-297.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-298.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-299.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-300.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-301.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-302.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-303.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-304.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-305.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-306.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-307.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-308.orsay.grid5000.fr" function="worker" />
+	<process host="gdx-309.orsay.grid5000.fr" function="worker" />
+	<process host="sagittaire-1.lyon.grid5000.fr" function="worker" />
+	<process host="sagittaire-2.lyon.grid5000.fr" function="worker" />
+	<process host="sagittaire-3.lyon.grid5000.fr" function="worker" />
+	<process host="sagittaire-4.lyon.grid5000.fr" function="worker" />
+	<process host="sagittaire-5.lyon.grid5000.fr" function="worker" />
+	<process host="sagittaire-6.lyon.grid5000.fr" function="worker" />
+	<process host="sagittaire-7.lyon.grid5000.fr" function="worker" />
+	<process host="sagittaire-8.lyon.grid5000.fr" function="worker" />
+	<process host="sagittaire-9.lyon.grid5000.fr" function="worker" />
+	<process host="sagittaire-10.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-11.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-12.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-13.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-14.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-15.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-16.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-17.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-18.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-19.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-20.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-21.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-22.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-23.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-24.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-25.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-26.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-27.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-28.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-29.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-30.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-31.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-32.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-33.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-34.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-35.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-36.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-37.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-38.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-39.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-40.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-41.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-42.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-43.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-44.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-45.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-46.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-47.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-48.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-49.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-50.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-51.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-52.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-53.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-54.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-55.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-56.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-57.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-58.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-59.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-60.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-61.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-62.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-63.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-64.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-65.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-66.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-67.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-68.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-69.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-70.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-71.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-72.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-73.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-74.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-75.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-76.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-77.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-78.lyon.grid5000.fr"
+		function="worker" />
+	<process host="sagittaire-79.lyon.grid5000.fr"
+		function="worker" />
+	<process host="capricorne-1.lyon.grid5000.fr" function="worker" />
+	<process host="capricorne-2.lyon.grid5000.fr" function="worker" />
+	<process host="capricorne-3.lyon.grid5000.fr" function="worker" />
+	<process host="capricorne-4.lyon.grid5000.fr" function="worker" />
+	<process host="capricorne-5.lyon.grid5000.fr" function="worker" />
+	<process host="capricorne-6.lyon.grid5000.fr" function="worker" />
+	<process host="capricorne-7.lyon.grid5000.fr" function="worker" />
+	<process host="capricorne-8.lyon.grid5000.fr" function="worker" />
+	<process host="capricorne-9.lyon.grid5000.fr" function="worker" />
+	<process host="capricorne-10.lyon.grid5000.fr"
+		function="worker" />
+	<process host="capricorne-11.lyon.grid5000.fr"
+		function="worker" />
+	<process host="capricorne-12.lyon.grid5000.fr"
+		function="worker" />
+	<process host="capricorne-13.lyon.grid5000.fr"
+		function="worker" />
+	<process host="capricorne-14.lyon.grid5000.fr"
+		function="worker" />
+	<process host="capricorne-15.lyon.grid5000.fr"
+		function="worker" />
+	<process host="capricorne-16.lyon.grid5000.fr"
+		function="worker" />
+	<process host="capricorne-17.lyon.grid5000.fr"
+		function="worker" />
+	<process host="capricorne-18.lyon.grid5000.fr"
+		function="worker" />
+	<process host="capricorne-19.lyon.grid5000.fr"
+		function="worker" />
+	<process host="capricorne-20.lyon.grid5000.fr"
+		function="worker" />
+	<process host="capricorne-21.lyon.grid5000.fr"
+		function="worker" />
+	<process host="capricorne-22.lyon.grid5000.fr"
+		function="worker" />
+	<process host="capricorne-23.lyon.grid5000.fr"
+		function="worker" />
+	<process host="capricorne-24.lyon.grid5000.fr"
+		function="worker" />
+	<process host="capricorne-25.lyon.grid5000.fr"
+		function="worker" />
+	<process host="capricorne-26.lyon.grid5000.fr"
+		function="worker" />
+	<process host="capricorne-27.lyon.grid5000.fr"
+		function="worker" />
+	<process host="capricorne-28.lyon.grid5000.fr"
+		function="worker" />
+	<process host="capricorne-29.lyon.grid5000.fr"
+		function="worker" />
+	<process host="capricorne-30.lyon.grid5000.fr"
+		function="worker" />
+	<process host="capricorne-31.lyon.grid5000.fr"
+		function="worker" />
+	<process host="capricorne-32.lyon.grid5000.fr"
+		function="worker" />
+	<process host="capricorne-33.lyon.grid5000.fr"
+		function="worker" />
+	<process host="capricorne-34.lyon.grid5000.fr"
+		function="worker" />
+	<process host="capricorne-35.lyon.grid5000.fr"
+		function="worker" />
+	<process host="capricorne-36.lyon.grid5000.fr"
+		function="worker" />
+	<process host="capricorne-37.lyon.grid5000.fr"
+		function="worker" />
+	<process host="capricorne-38.lyon.grid5000.fr"
+		function="worker" />
+	<process host="capricorne-39.lyon.grid5000.fr"
+		function="worker" />
+	<process host="capricorne-40.lyon.grid5000.fr"
+		function="worker" />
+	<process host="capricorne-41.lyon.grid5000.fr"
+		function="worker" />
+	<process host="capricorne-42.lyon.grid5000.fr"
+		function="worker" />
+	<process host="capricorne-43.lyon.grid5000.fr"
+		function="worker" />
+	<process host="capricorne-44.lyon.grid5000.fr"
+		function="worker" />
+	<process host="capricorne-45.lyon.grid5000.fr"
+		function="worker" />
+	<process host="capricorne-46.lyon.grid5000.fr"
+		function="worker" />
+	<process host="capricorne-47.lyon.grid5000.fr"
+		function="worker" />
+	<process host="capricorne-48.lyon.grid5000.fr"
+		function="worker" />
+	<process host="capricorne-49.lyon.grid5000.fr"
+		function="worker" />
+	<process host="capricorne-50.lyon.grid5000.fr"
+		function="worker" />
+	<process host="capricorne-51.lyon.grid5000.fr"
+		function="worker" />
+	<process host="capricorne-52.lyon.grid5000.fr"
+		function="worker" />
+	<process host="capricorne-53.lyon.grid5000.fr"
+		function="worker" />
+	<process host="capricorne-54.lyon.grid5000.fr"
+		function="worker" />
+	<process host="capricorne-55.lyon.grid5000.fr"
+		function="worker" />
+	<process host="capricorne-56.lyon.grid5000.fr"
+		function="worker" />
+	<process host="capricorne-57.lyon.grid5000.fr"
+		function="worker" />
+	<process host="capricorne-58.lyon.grid5000.fr"
+		function="worker" />
+	<process host="capricorne-59.lyon.grid5000.fr"
+		function="worker" />
+	<process host="griffon-1.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-2.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-3.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-4.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-5.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-6.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-7.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-8.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-9.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-10.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-11.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-12.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-13.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-14.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-15.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-16.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-17.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-18.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-19.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-20.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-21.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-22.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-23.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-24.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-25.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-26.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-27.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-28.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-29.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-30.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-31.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-32.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-33.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-34.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-35.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-36.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-37.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-38.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-39.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-40.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-41.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-42.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-43.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-44.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-45.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-46.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-47.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-48.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-49.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-50.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-51.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-52.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-53.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-54.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-55.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-56.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-57.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-58.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-59.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-60.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-61.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-62.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-63.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-64.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-65.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-66.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-67.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-68.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-69.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-70.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-71.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-72.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-73.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-74.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-75.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-76.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-77.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-78.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-79.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-80.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-81.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-82.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-83.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-84.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-85.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-86.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-87.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-88.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-89.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-90.nancy.grid5000.fr" function="worker" />
+	<process host="griffon-91.nancy.grid5000.fr" function="worker" />
+	<process host="netgdx-1.orsay.grid5000.fr" function="worker" />
+	<process host="netgdx-2.orsay.grid5000.fr" function="worker" />
+	<process host="netgdx-3.orsay.grid5000.fr" function="worker" />
+	<process host="netgdx-4.orsay.grid5000.fr" function="worker" />
+	<process host="netgdx-5.orsay.grid5000.fr" function="worker" />
+	<process host="netgdx-6.orsay.grid5000.fr" function="worker" />
+	<process host="netgdx-7.orsay.grid5000.fr" function="worker" />
+	<process host="netgdx-8.orsay.grid5000.fr" function="worker" />
+	<process host="netgdx-9.orsay.grid5000.fr" function="worker" />
+	<process host="netgdx-10.orsay.grid5000.fr" function="worker" />
+	<process host="netgdx-11.orsay.grid5000.fr" function="worker" />
+	<process host="netgdx-12.orsay.grid5000.fr" function="worker" />
+	<process host="netgdx-13.orsay.grid5000.fr" function="worker" />
+	<process host="netgdx-14.orsay.grid5000.fr" function="worker" />
+	<process host="netgdx-15.orsay.grid5000.fr" function="worker" />
+	<process host="netgdx-16.orsay.grid5000.fr" function="worker" />
+	<process host="netgdx-17.orsay.grid5000.fr" function="worker" />
+	<process host="netgdx-18.orsay.grid5000.fr" function="worker" />
+	<process host="netgdx-19.orsay.grid5000.fr" function="worker" />
+	<process host="netgdx-20.orsay.grid5000.fr" function="worker" />
+	<process host="netgdx-21.orsay.grid5000.fr" function="worker" />
+	<process host="netgdx-22.orsay.grid5000.fr" function="worker" />
+	<process host="netgdx-23.orsay.grid5000.fr" function="worker" />
+	<process host="netgdx-24.orsay.grid5000.fr" function="worker" />
+	<process host="netgdx-25.orsay.grid5000.fr" function="worker" />
+	<process host="netgdx-26.orsay.grid5000.fr" function="worker" />
+	<process host="netgdx-27.orsay.grid5000.fr" function="worker" />
+	<process host="netgdx-28.orsay.grid5000.fr" function="worker" />
+	<process host="netgdx-29.orsay.grid5000.fr" function="worker" />
+	<process host="paradent-1.rennes.grid5000.fr" function="worker" />
+	<process host="paradent-2.rennes.grid5000.fr" function="worker" />
+	<process host="paradent-3.rennes.grid5000.fr" function="worker" />
+	<process host="paradent-4.rennes.grid5000.fr" function="worker" />
+	<process host="paradent-5.rennes.grid5000.fr" function="worker" />
+	<process host="paradent-6.rennes.grid5000.fr" function="worker" />
+	<process host="paradent-7.rennes.grid5000.fr" function="worker" />
+	<process host="paradent-8.rennes.grid5000.fr" function="worker" />
+	<process host="paradent-9.rennes.grid5000.fr" function="worker" />
+	<process host="paradent-10.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paradent-11.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paradent-12.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paradent-13.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paradent-14.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paradent-15.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paradent-16.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paradent-17.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paradent-18.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paradent-19.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paradent-20.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paradent-21.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paradent-22.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paradent-23.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paradent-24.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paradent-25.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paradent-26.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paradent-27.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paradent-28.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paradent-29.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paradent-30.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paradent-31.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paradent-32.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paradent-33.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paradent-34.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paradent-35.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paradent-36.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paradent-37.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paradent-38.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paradent-39.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paradent-40.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paradent-41.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paradent-42.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paradent-43.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paradent-44.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paradent-45.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paradent-46.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paradent-47.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paradent-48.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paradent-49.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paradent-50.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paradent-51.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paradent-52.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paradent-53.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paradent-54.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paradent-55.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paradent-56.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paradent-57.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paradent-58.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paradent-59.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paradent-60.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paradent-61.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paradent-62.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paradent-63.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paramount-1.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paramount-2.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paramount-3.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paramount-4.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paramount-5.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paramount-6.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paramount-7.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paramount-8.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paramount-9.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paramount-10.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paramount-11.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paramount-12.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paramount-13.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paramount-14.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paramount-15.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paramount-16.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paramount-17.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paramount-18.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paramount-19.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paramount-20.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paramount-21.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paramount-22.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paramount-23.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paramount-24.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paramount-25.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paramount-26.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paramount-27.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paramount-28.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paramount-29.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paramount-30.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paramount-31.rennes.grid5000.fr"
+		function="worker" />
+	<process host="paramount-32.rennes.grid5000.fr"
+		function="worker" />
+	<process host="parapide-1.rennes.grid5000.fr" function="worker" />
+	<process host="parapide-2.rennes.grid5000.fr" function="worker" />
+	<process host="parapide-3.rennes.grid5000.fr" function="worker" />
+	<process host="parapide-4.rennes.grid5000.fr" function="worker" />
+	<process host="parapide-5.rennes.grid5000.fr" function="worker" />
+	<process host="parapide-6.rennes.grid5000.fr" function="worker" />
+	<process host="parapide-7.rennes.grid5000.fr" function="worker" />
+	<process host="parapide-8.rennes.grid5000.fr" function="worker" />
+	<process host="parapide-9.rennes.grid5000.fr" function="worker" />
+	<process host="parapide-10.rennes.grid5000.fr"
+		function="worker" />
+	<process host="parapide-11.rennes.grid5000.fr"
+		function="worker" />
+	<process host="parapide-12.rennes.grid5000.fr"
+		function="worker" />
+	<process host="parapide-13.rennes.grid5000.fr"
+		function="worker" />
+	<process host="parapide-14.rennes.grid5000.fr"
+		function="worker" />
+	<process host="parapide-15.rennes.grid5000.fr"
+		function="worker" />
+	<process host="parapide-16.rennes.grid5000.fr"
+		function="worker" />
+	<process host="parapide-17.rennes.grid5000.fr"
+		function="worker" />
+	<process host="parapide-18.rennes.grid5000.fr"
+		function="worker" />
+	<process host="parapide-19.rennes.grid5000.fr"
+		function="worker" />
+	<process host="parapide-20.rennes.grid5000.fr"
+		function="worker" />
+	<process host="parapide-21.rennes.grid5000.fr"
+		function="worker" />
+	<process host="parapide-22.rennes.grid5000.fr"
+		function="worker" />
+	<process host="parapide-23.rennes.grid5000.fr"
+		function="worker" />
+	<process host="parapide-24.rennes.grid5000.fr"
+		function="worker" />
+	<process host="parapluie-1.rennes.grid5000.fr"
+		function="worker" />
+	<process host="parapluie-2.rennes.grid5000.fr"
+		function="worker" />
+	<process host="parapluie-3.rennes.grid5000.fr"
+		function="worker" />
+	<process host="parapluie-4.rennes.grid5000.fr"
+		function="worker" />
+	<process host="parapluie-5.rennes.grid5000.fr"
+		function="worker" />
+	<process host="parapluie-6.rennes.grid5000.fr"
+		function="worker" />
+	<process host="parapluie-7.rennes.grid5000.fr"
+		function="worker" />
+	<process host="parapluie-8.rennes.grid5000.fr"
+		function="worker" />
+	<process host="parapluie-9.rennes.grid5000.fr"
+		function="worker" />
+	<process host="parapluie-10.rennes.grid5000.fr"
+		function="worker" />
+	<process host="parapluie-11.rennes.grid5000.fr"
+		function="worker" />
+	<process host="parapluie-12.rennes.grid5000.fr"
+		function="worker" />
+	<process host="parapluie-13.rennes.grid5000.fr"
+		function="worker" />
+	<process host="parapluie-14.rennes.grid5000.fr"
+		function="worker" />
+	<process host="parapluie-15.rennes.grid5000.fr"
+		function="worker" />
+	<process host="parapluie-16.rennes.grid5000.fr"
+		function="worker" />
+	<process host="parapluie-17.rennes.grid5000.fr"
+		function="worker" />
+	<process host="parapluie-18.rennes.grid5000.fr"
+		function="worker" />
+	<process host="parapluie-19.rennes.grid5000.fr"
+		function="worker" />
+	<process host="parapluie-20.rennes.grid5000.fr"
+		function="worker" />
+	<process host="parapluie-21.rennes.grid5000.fr"
+		function="worker" />
+	<process host="parapluie-22.rennes.grid5000.fr"
+		function="worker" />
+	<process host="parapluie-23.rennes.grid5000.fr"
+		function="worker" />
+	<process host="parapluie-24.rennes.grid5000.fr"
+		function="worker" />
+	<process host="parapluie-25.rennes.grid5000.fr"
+		function="worker" />
+	<process host="parapluie-26.rennes.grid5000.fr"
+		function="worker" />
+	<process host="parapluie-27.rennes.grid5000.fr"
+		function="worker" />
+	<process host="parapluie-28.rennes.grid5000.fr"
+		function="worker" />
+	<process host="parapluie-29.rennes.grid5000.fr"
+		function="worker" />
+	<process host="parapluie-30.rennes.grid5000.fr"
+		function="worker" />
+	<process host="parapluie-31.rennes.grid5000.fr"
+		function="worker" />
+	<process host="parapluie-32.rennes.grid5000.fr"
+		function="worker" />
+	<process host="parapluie-33.rennes.grid5000.fr"
+		function="worker" />
+	<process host="parapluie-34.rennes.grid5000.fr"
+		function="worker" />
+	<process host="parapluie-35.rennes.grid5000.fr"
+		function="worker" />
+	<process host="parapluie-36.rennes.grid5000.fr"
+		function="worker" />
+	<process host="parapluie-37.rennes.grid5000.fr"
+		function="worker" />
+	<process host="parapluie-38.rennes.grid5000.fr"
+		function="worker" />
+	<process host="parapluie-39.rennes.grid5000.fr"
+		function="worker" />
+	<process host="helios-1.sophia.grid5000.fr" function="worker" />
+	<process host="helios-2.sophia.grid5000.fr" function="worker" />
+	<process host="helios-3.sophia.grid5000.fr" function="worker" />
+	<process host="helios-4.sophia.grid5000.fr" function="worker" />
+	<process host="helios-5.sophia.grid5000.fr" function="worker" />
+	<process host="helios-6.sophia.grid5000.fr" function="worker" />
+	<process host="helios-7.sophia.grid5000.fr" function="worker" />
+	<process host="helios-8.sophia.grid5000.fr" function="worker" />
+	<process host="helios-9.sophia.grid5000.fr" function="worker" />
+	<process host="helios-10.sophia.grid5000.fr" function="worker" />
+	<process host="helios-11.sophia.grid5000.fr" function="worker" />
+	<process host="helios-12.sophia.grid5000.fr" function="worker" />
+	<process host="helios-13.sophia.grid5000.fr" function="worker" />
+	<process host="helios-14.sophia.grid5000.fr" function="worker" />
+	<process host="helios-15.sophia.grid5000.fr" function="worker" />
+	<process host="helios-16.sophia.grid5000.fr" function="worker" />
+	<process host="helios-17.sophia.grid5000.fr" function="worker" />
+	<process host="helios-18.sophia.grid5000.fr" function="worker" />
+	<process host="helios-19.sophia.grid5000.fr" function="worker" />
+	<process host="helios-20.sophia.grid5000.fr" function="worker" />
+	<process host="helios-21.sophia.grid5000.fr" function="worker" />
+	<process host="helios-22.sophia.grid5000.fr" function="worker" />
+	<process host="helios-23.sophia.grid5000.fr" function="worker" />
+	<process host="helios-24.sophia.grid5000.fr" function="worker" />
+	<process host="helios-25.sophia.grid5000.fr" function="worker" />
+	<process host="helios-26.sophia.grid5000.fr" function="worker" />
+	<process host="helios-27.sophia.grid5000.fr" function="worker" />
+	<process host="helios-28.sophia.grid5000.fr" function="worker" />
+	<process host="helios-29.sophia.grid5000.fr" function="worker" />
+	<process host="helios-30.sophia.grid5000.fr" function="worker" />
+	<process host="helios-31.sophia.grid5000.fr" function="worker" />
+	<process host="helios-32.sophia.grid5000.fr" function="worker" />
+	<process host="helios-33.sophia.grid5000.fr" function="worker" />
+	<process host="helios-34.sophia.grid5000.fr" function="worker" />
+	<process host="helios-35.sophia.grid5000.fr" function="worker" />
+	<process host="helios-36.sophia.grid5000.fr" function="worker" />
+	<process host="helios-37.sophia.grid5000.fr" function="worker" />
+	<process host="helios-38.sophia.grid5000.fr" function="worker" />
+	<process host="helios-39.sophia.grid5000.fr" function="worker" />
+	<process host="helios-40.sophia.grid5000.fr" function="worker" />
+	<process host="helios-41.sophia.grid5000.fr" function="worker" />
+	<process host="helios-42.sophia.grid5000.fr" function="worker" />
+	<process host="helios-43.sophia.grid5000.fr" function="worker" />
+	<process host="helios-44.sophia.grid5000.fr" function="worker" />
+	<process host="helios-45.sophia.grid5000.fr" function="worker" />
+	<process host="helios-46.sophia.grid5000.fr" function="worker" />
+	<process host="helios-47.sophia.grid5000.fr" function="worker" />
+	<process host="helios-48.sophia.grid5000.fr" function="worker" />
+	<process host="helios-49.sophia.grid5000.fr" function="worker" />
+	<process host="helios-50.sophia.grid5000.fr" function="worker" />
+	<process host="helios-51.sophia.grid5000.fr" function="worker" />
+	<process host="helios-52.sophia.grid5000.fr" function="worker" />
+	<process host="helios-53.sophia.grid5000.fr" function="worker" />
+	<process host="helios-54.sophia.grid5000.fr" function="worker" />
+	<process host="helios-55.sophia.grid5000.fr" function="worker" />
+	<process host="sol-1.sophia.grid5000.fr" function="worker" />
+	<process host="sol-2.sophia.grid5000.fr" function="worker" />
+	<process host="sol-3.sophia.grid5000.fr" function="worker" />
+	<process host="sol-4.sophia.grid5000.fr" function="worker" />
+	<process host="sol-5.sophia.grid5000.fr" function="worker" />
+	<process host="sol-6.sophia.grid5000.fr" function="worker" />
+	<process host="sol-7.sophia.grid5000.fr" function="worker" />
+	<process host="sol-8.sophia.grid5000.fr" function="worker" />
+	<process host="sol-9.sophia.grid5000.fr" function="worker" />
+	<process host="sol-10.sophia.grid5000.fr" function="worker" />
+	<process host="sol-11.sophia.grid5000.fr" function="worker" />
+	<process host="sol-12.sophia.grid5000.fr" function="worker" />
+	<process host="sol-13.sophia.grid5000.fr" function="worker" />
+	<process host="sol-14.sophia.grid5000.fr" function="worker" />
+	<process host="sol-15.sophia.grid5000.fr" function="worker" />
+	<process host="sol-16.sophia.grid5000.fr" function="worker" />
+	<process host="sol-17.sophia.grid5000.fr" function="worker" />
+	<process host="sol-18.sophia.grid5000.fr" function="worker" />
+	<process host="sol-19.sophia.grid5000.fr" function="worker" />
+	<process host="sol-20.sophia.grid5000.fr" function="worker" />
+	<process host="sol-21.sophia.grid5000.fr" function="worker" />
+	<process host="sol-22.sophia.grid5000.fr" function="worker" />
+	<process host="sol-23.sophia.grid5000.fr" function="worker" />
+	<process host="sol-24.sophia.grid5000.fr" function="worker" />
+	<process host="sol-25.sophia.grid5000.fr" function="worker" />
+	<process host="sol-26.sophia.grid5000.fr" function="worker" />
+	<process host="sol-27.sophia.grid5000.fr" function="worker" />
+	<process host="sol-28.sophia.grid5000.fr" function="worker" />
+	<process host="sol-29.sophia.grid5000.fr" function="worker" />
+	<process host="sol-30.sophia.grid5000.fr" function="worker" />
+	<process host="sol-31.sophia.grid5000.fr" function="worker" />
+	<process host="sol-32.sophia.grid5000.fr" function="worker" />
+	<process host="sol-33.sophia.grid5000.fr" function="worker" />
+	<process host="sol-34.sophia.grid5000.fr" function="worker" />
+	<process host="sol-35.sophia.grid5000.fr" function="worker" />
+	<process host="sol-36.sophia.grid5000.fr" function="worker" />
+	<process host="sol-37.sophia.grid5000.fr" function="worker" />
+	<process host="sol-38.sophia.grid5000.fr" function="worker" />
+	<process host="sol-39.sophia.grid5000.fr" function="worker" />
+	<process host="sol-40.sophia.grid5000.fr" function="worker" />
+	<process host="sol-41.sophia.grid5000.fr" function="worker" />
+	<process host="sol-42.sophia.grid5000.fr" function="worker" />
+	<process host="sol-43.sophia.grid5000.fr" function="worker" />
+	<process host="sol-44.sophia.grid5000.fr" function="worker" />
+	<process host="sol-45.sophia.grid5000.fr" function="worker" />
+	<process host="sol-46.sophia.grid5000.fr" function="worker" />
+	<process host="sol-47.sophia.grid5000.fr" function="worker" />
+	<process host="sol-48.sophia.grid5000.fr" function="worker" />
+	<process host="sol-49.sophia.grid5000.fr" function="worker" />
+	<process host="suno-1.sophia.grid5000.fr" function="worker" />
+	<process host="suno-2.sophia.grid5000.fr" function="worker" />
+	<process host="suno-3.sophia.grid5000.fr" function="worker" />
+	<process host="suno-4.sophia.grid5000.fr" function="worker" />
+	<process host="suno-5.sophia.grid5000.fr" function="worker" />
+	<process host="suno-6.sophia.grid5000.fr" function="worker" />
+	<process host="suno-7.sophia.grid5000.fr" function="worker" />
+	<process host="suno-8.sophia.grid5000.fr" function="worker" />
+	<process host="suno-9.sophia.grid5000.fr" function="worker" />
+	<process host="suno-10.sophia.grid5000.fr" function="worker" />
+	<process host="suno-11.sophia.grid5000.fr" function="worker" />
+	<process host="suno-12.sophia.grid5000.fr" function="worker" />
+	<process host="suno-13.sophia.grid5000.fr" function="worker" />
+	<process host="suno-14.sophia.grid5000.fr" function="worker" />
+	<process host="suno-15.sophia.grid5000.fr" function="worker" />
+	<process host="suno-16.sophia.grid5000.fr" function="worker" />
+	<process host="suno-17.sophia.grid5000.fr" function="worker" />
+	<process host="suno-18.sophia.grid5000.fr" function="worker" />
+	<process host="suno-19.sophia.grid5000.fr" function="worker" />
+	<process host="suno-20.sophia.grid5000.fr" function="worker" />
+	<process host="suno-21.sophia.grid5000.fr" function="worker" />
+	<process host="suno-22.sophia.grid5000.fr" function="worker" />
+	<process host="suno-23.sophia.grid5000.fr" function="worker" />
+	<process host="suno-24.sophia.grid5000.fr" function="worker" />
+	<process host="suno-25.sophia.grid5000.fr" function="worker" />
+	<process host="suno-26.sophia.grid5000.fr" function="worker" />
+	<process host="suno-27.sophia.grid5000.fr" function="worker" />
+	<process host="suno-28.sophia.grid5000.fr" function="worker" />
+	<process host="suno-29.sophia.grid5000.fr" function="worker" />
+	<process host="suno-30.sophia.grid5000.fr" function="worker" />
+	<process host="suno-31.sophia.grid5000.fr" function="worker" />
+	<process host="suno-32.sophia.grid5000.fr" function="worker" />
+	<process host="suno-33.sophia.grid5000.fr" function="worker" />
+	<process host="suno-34.sophia.grid5000.fr" function="worker" />
+	<process host="suno-35.sophia.grid5000.fr" function="worker" />
+	<process host="suno-36.sophia.grid5000.fr" function="worker" />
+	<process host="suno-37.sophia.grid5000.fr" function="worker" />
+	<process host="suno-38.sophia.grid5000.fr" function="worker" />
+	<process host="suno-39.sophia.grid5000.fr" function="worker" />
+	<process host="suno-40.sophia.grid5000.fr" function="worker" />
+	<process host="suno-41.sophia.grid5000.fr" function="worker" />
+	<process host="suno-42.sophia.grid5000.fr" function="worker" />
+	<process host="suno-43.sophia.grid5000.fr" function="worker" />
+	<process host="suno-44.sophia.grid5000.fr" function="worker" />
+</platform>

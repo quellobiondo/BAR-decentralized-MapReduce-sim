@@ -47,6 +47,20 @@ int worker(int argc, char* argv[]) {
 
 	me = MSG_host_self();
 
+	TRACE_host_state_declare("MAP-INPUT-FETCHING");
+	TRACE_host_state_declare("REDUCE-INPUT-FETCHING");
+	TRACE_host_state_declare("MAP-EXECUTION");
+	TRACE_host_state_declare("REDUCE-EXECUTION");
+
+	TRACE_host_state_declare_value("MAP-INPUT-FETCHING", "BEGIN", "0.7 0.7 0.7");
+	TRACE_host_state_declare_value("MAP-INPUT-FETCHING", "END", "0.7 0.7 0.7");
+	TRACE_host_state_declare_value("REDUCE-INPUT-FETCHING", "BEGIN", "0.1 0.7 0.1");
+	TRACE_host_state_declare_value("REDUCE-INPUT-FETCHING", "END", "0.1 0.7 0.1");
+	TRACE_host_state_declare_value("MAP-EXECUTION", "BEGIN", "0.1 0.7 0.1");
+	TRACE_host_state_declare_value("MAP-EXECUTION", "END", "0.1 0.7 0.1");
+	TRACE_host_state_declare_value("REDUCE-EXECUTION", "BEGIN", "0.1 0.7 0.1");
+	TRACE_host_state_declare_value("REDUCE-EXECUTION", "END", "0.1 0.7 0.1");
+
 	/* Spawn a process that listens for tasks. */
 	MSG_process_create("listen", listen, NULL, me);
 	/* Spawn a process to exchange data with other workers. */
@@ -114,14 +128,19 @@ static int compute(int argc, char* argv[]) {
 
 	switch (ti->phase) {
 	case MAP:
+		TRACE_host_set_state(MSG_host_get_name(MSG_host_self()), "MAP-INPUT-FETCHING", "BEGIN");
 		get_chunk(ti);
+		TRACE_host_set_state(MSG_host_get_name(MSG_host_self()), "MAP-INPUT-FETCHING", "END");
 		break;
 
 	case REDUCE:
+		TRACE_host_set_state(MSG_host_get_name(MSG_host_self()), "REDUCE-INPUT-FETCHING", "BEGIN");
 		get_map_output(ti);
+		TRACE_host_set_state(MSG_host_get_name(MSG_host_self()), "REDUCE-INPUT-FETCHING", "END");
 		break;
 	}
 
+	TRACE_host_set_state(MSG_host_get_name(MSG_host_self()), ti->phase == MAP ? "MAP-EXECUTION" : "REDUCE-EXECUTION", "BEGIN");
 	if (job.task_status[ti->phase][ti->id] != T_STATUS_DONE) {
 
 
@@ -138,6 +157,8 @@ static int compute(int argc, char* argv[]) {
 		//	xbt_ex_free(e);
 		//}
 	}
+	TRACE_host_set_state(MSG_host_get_name(MSG_host_self()), ti->phase == MAP ? "MAP-EXECUTION" : "REDUCE-EXECUTION", "END");
+
 
 	job.heartbeats[ti->wid].slots_av[ti->phase]++;
 

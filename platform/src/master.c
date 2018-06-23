@@ -51,6 +51,14 @@ int master (int argc, char* argv[])
     print_config ();
     XBT_INFO ("JOB BEGIN"); XBT_INFO (" ");
 
+    TRACE_host_state_declare("MAP");
+	TRACE_host_state_declare("REDUCE");
+
+	TRACE_host_state_declare_value("MAP", "START", "0.7 0.7 0.7");
+	TRACE_host_state_declare_value("MAP", "END", "0.7 0.7 0.7");
+	TRACE_host_state_declare_value("REDUCE", "START", "0.1 0.7 0.1");
+	TRACE_host_state_declare_value("REDUCE", "END", "0.1 0.7 0.1");
+
     tasks_log = fopen ("tasks.csv", "w");
     fprintf (tasks_log, "task_id,phase,worker_id,time,action,shuffle_end\n");
 
@@ -94,6 +102,7 @@ int master (int argc, char* argv[])
 			XBT_INFO (" ");
 			XBT_INFO ("%s PHASE DONE", (ti->phase==MAP?"MAP":"REDUCE"));
 			XBT_INFO (" ");
+			TRACE_host_set_state(MSG_host_get_name(MSG_host_self()), (ti->phase == MAP ? "MAP" : "REDUCE"), "END");
 		    }
 		}
 		xbt_free_ref (&ti);
@@ -340,6 +349,8 @@ static void send_task (enum phase_e phase, size_t tid, size_t data_src, size_t w
 #ifdef VERBOSE
     XBT_INFO ("TX: %s > %s", SMS_TASK, MSG_host_get_name (config.workers[wid]));
 #endif
+
+    TRACE_host_set_state(MSG_host_get_name(MSG_host_self()), (phase == MAP ? "MAP" : "REDUCE"), "START");
 
     sprintf (mailbox, TASKTRACKER_MAILBOX, wid);
     xbt_assert (MSG_task_send (task, mailbox) == MSG_OK, "ERROR SENDING MESSAGE");

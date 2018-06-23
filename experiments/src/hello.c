@@ -1,4 +1,6 @@
 #include <mrsg.h>
+#include <stdio.h>
+#include <string.h>
 
 /**
  * User function that indicates the amount of bytes
@@ -34,8 +36,30 @@ double my_task_cost_function (enum phase_e phase, size_t tid, size_t wid)
     }
 }
 
+#define MAX_FILE_NAME_LENGTH 50
+
+/*
+ * Optional parameters
+ * [ConfigurationFile] ["Topology"] ["Platform"]
+ */
 int main (int argc, char* argv[])
 {
+	char platform_file[MAX_FILE_NAME_LENGTH], deploy_file[MAX_FILE_NAME_LENGTH], conf_file[MAX_FILE_NAME_LENGTH];
+
+	if(argc != 1){
+		if(argc != 4){
+			printf("Usage Error: hello [<ConfigurationFile> <Topology> <Platform>]\n");
+			exit(1);
+		}
+		strncpy(conf_file, argv[1], MAX_FILE_NAME_LENGTH);
+		strncpy(deploy_file, argv[2], MAX_FILE_NAME_LENGTH);
+		strncpy(platform_file, argv[3], MAX_FILE_NAME_LENGTH);
+	}else{
+		strncpy(platform_file, "platforms/g5k.xml", MAX_FILE_NAME_LENGTH);
+		strncpy(deploy_file, "deployments/Cluster-100.deploy.xml", MAX_FILE_NAME_LENGTH);
+		strncpy(conf_file, "configurations/sum.conf", MAX_FILE_NAME_LENGTH);
+	}
+
     /* MRSG_init must be called before setting the user functions. */
     MRSG_init ();
     /* Set the task cost function. */
@@ -43,7 +67,7 @@ int main (int argc, char* argv[])
     /* Set the map output function. */
     MRSG_set_map_output_f (my_map_output_function);
     /* Run the simulation. */
-    MRSG_main ("g5k.xml", "hello.deploy.xml", "hello.conf");
+    MRSG_main (platform_file, deploy_file, conf_file);
 
     return 0;
 }

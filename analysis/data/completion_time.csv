@@ -1,0 +1,5 @@
+Topology,NumberOfNodes,Platform,Byzantine,MapDuration,ReduceDuration,TotalDuration,Updated,Config
+Cluster,10,MARS,0,60.02,90.01,105.02,TRUE,sum
+Cluster,10,MARS,10,180.05,195.04,225.05,TRUE,sum
+Cluster,10,MARS,20,300.08,315.07,345.08,TRUE,sum
+Cluster,10,MARS,30,405.11,405.09,450.11,TRUE,sum

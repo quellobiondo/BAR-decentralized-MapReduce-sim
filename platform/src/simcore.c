@@ -44,16 +44,11 @@ static void free_global_mem (void);
 int MRSG_main (const char* plat, const char* depl, const char* conf)
 {
     int argc = 8;
-    char* argv[] = {
-	"mrsg",
-	"--cfg=tracing:1",
-	"--cfg=tracing/buffer:1",
-	"--cfg=tracing/filename:tracefile.trace",
-	"--cfg=tracing/categorized:1",
-	"--cfg=tracing/uncategorized:1",
-	"--cfg=viva/categorized:cat.plist",
-	"--cfg=viva/uncategorized:uncat.plist"
-    };
+	char* argv[] = { "mrsg", "--cfg=tracing:1", "--cfg=tracing/buffer:1",
+			"--cfg=tracing/filename:traces/tracefile.trace",
+			"--cfg=tracing/categorized:1", "--cfg=tracing/uncategorized:1",
+			"--cfg=viva/categorized:traces/cat.plist",
+			"--cfg=viva/uncategorized:traces/uncat.plist"};
 
     msg_error_t  res = MSG_OK;
 
@@ -171,11 +166,6 @@ static void read_mr_config_file (const char* file_name)
 	else if ( strcmp (property, "reduce_slots") == 0 )
 	{
 	    fscanf (file, "%d", &config.slots[REDUCE]);
-	}
-	else
-	{
-	    printf ("Error: Property %s is not valid. (in %s)", property, file_name);
-	    exit (1);
 	}
     }
 
