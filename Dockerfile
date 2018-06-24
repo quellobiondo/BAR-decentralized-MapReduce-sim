@@ -10,7 +10,7 @@ WORKDIR experiments
 
 COPY ./Tools/entrypoint.sh /home/experiment/experiments
 
-RUN make clean all
+RUN cd ../platform && make clean all && cd ../experiments && make clean all
 
 ENV LD_LIBRARY_PATH /usr/local/lib/
 
