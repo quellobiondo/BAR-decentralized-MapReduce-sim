@@ -184,7 +184,10 @@ static void read_mr_config_file(const char* file_name) {
 			"The number of reduce tasks can't be negative");
 	xbt_assert(config.slots[REDUCE] > 0,
 			"Reduce slots must be greater than zero");
-	xbt_assert(config.byzantine >= 0, "Byzantine nodes must be at least zero");
+	xbt_assert(config.byzantine >= 0,
+				"Byzantine nodes percentage must be at least zero");
+	xbt_assert(config.byzantine <= 100,
+				"Byzantine nodes percentage must be at maximum 100");
 	xbt_assert(config.block_period >= 0,
 			"Period of block creation in seconds must be at least zero");
 	xbt_assert(config.block_size >= 0,

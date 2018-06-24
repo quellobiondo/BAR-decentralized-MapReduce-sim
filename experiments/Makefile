@@ -11,9 +11,11 @@ TRACE_FOLDER = traces
 SRC_FILES=$(wildcard $(SOURCE_FOLDER)/*.c)
 BIN=$(SRC_FILES:$(SOURCE_FOLDER)/%.c=$(BIN_FOLDER)/%.bin)
 
+PLATFORM_LIB=../platform/libMARS.a #MARS LIB
+
 all: $(BIN)
 
-$(BIN_FOLDER)/%.bin: $(SOURCE_FOLDER)/%.c ../platform/libmrsg.a
+$(BIN_FOLDER)/%.bin: $(SOURCE_FOLDER)/%.c $(PLATFORM_LIB)
 	$(CC) $(INCLUDES) $(DEFS) -o $@ $^ $(LDADD)
 
 ../platform/libmrsg.a:

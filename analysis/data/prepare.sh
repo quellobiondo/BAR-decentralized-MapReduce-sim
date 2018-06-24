@@ -50,10 +50,11 @@ function eraseOldDataInTable {
     TOPOLOGY="$2"
     NUMBER_OF_NODES="$3"
     PLATFORM="$4"
-    CONFIGURATION="$5"
+    BYZANTINE_PERC="$5"
+    CONFIGURATION="$6"
 
     ## Erase old data
-    grep -vwE "$TOPOLOGY,$NUMBER_OF_NODES,$PLATFORM,.*,$CONFIGURATION" "$ORIGINAL_FILE" > "$TMPFILENAME"
+    grep -vwE "$TOPOLOGY,$NUMBER_OF_NODES,$PLATFORM,$BYZANTINE_PERC,.*,$CONFIGURATION" "$ORIGINAL_FILE" > "$TMPFILENAME"
     mv "$TMPFILENAME" "$ORIGINAL_FILE"
 }
 
@@ -79,6 +80,7 @@ function createCPUUsageTable {
 
 
 echo "Creating completion time table"
+rm "$COMPLETION_FILE_NAME" "$CPU_USAGE_FILE_NAME"
 createCompletionTimeTable "$COMPLETION_FILE_NAME"
 createCPUUsageTable "$CPU_USAGE_FILE_NAME"
 
@@ -117,7 +119,7 @@ do
             echo "... computing Job duration"
             
             # Erase old data
-            eraseOldDataInTable $COMPLETION_FILE_NAME $TOPOLOGY $NUMBER_OF_NODES $PLATFORM $CONFIGURATION
+            #eraseOldDataInTable $COMPLETION_FILE_NAME $TOPOLOGY $NUMBER_OF_NODES $PLATFORM $BYZANTINE_PERC $CONFIGURATION
 
             MAP_BEGIN=0
             MAP_END=$(grep -e "MAP,.*END" -m 1 $StateTraceFile | cut -d',' -f 4)
@@ -128,27 +130,23 @@ do
             REDUCE_DURATION=`awk "BEGIN {printf \"%.2f\n\", $REDUCE_END-$REDUCE_BEGIN}"`
             TOTAL_DURATION=`awk "BEGIN {printf \"%.2f\n\", $REDUCE_END-$MAP_BEGIN}"`
             
-            AppendCSVLine $TMP_FILE_DURATION $TOPOLOGY $NUMBER_OF_NODES $PLATFORM $BYZANTINE_PERC $MAP_DURATION $REDUCE_DURATION $TOTAL_DURATION "TRUE" $CONFIGURATION
+            AppendCSVLine $COMPLETION_FILE_NAME $TOPOLOGY $NUMBER_OF_NODES $PLATFORM $BYZANTINE_PERC $MAP_DURATION $REDUCE_DURATION $TOTAL_DURATION "TRUE" $CONFIGURATION
 
 
             ## Compute stats for CPU consumption
             echo "... computing CPU consumption"
             
             # Erase old data
-            eraseOldDataInTable $CPU_USAGE_FILE_NAME $TOPOLOGY $NUMBER_OF_NODES $PLATFORM $CONFIGURATION
-
+            #eraseOldDataInTable $CPU_USAGE_FILE_NAME $TOPOLOGY $NUMBER_OF_NODES $PLATFORM $BYZANTINE_PERC $CONFIGURATION
+            
             grep "power_used" "$VariableTraceFile" | while read -r line ; do
                 TIME=$(echo $line | cut -d',' -f 6)
                 POWER=$(echo $line | cut -d',' -f 7)
-                AppendCSVLine $TMP_FILE_CPU $TOPOLOGY $NUMBER_OF_NODES $PLATFORM $BYZANTINE_PERC $POWER $TIME "TRUE" $CONFIGURATION                
+                AppendCSVLine $CPU_USAGE_FILE_NAME $TOPOLOGY $NUMBER_OF_NODES $PLATFORM $BYZANTINE_PERC $POWER $TIME "TRUE" $CONFIGURATION                
             done
-
         fi
     done
     cd .. 
 done
-
-cat "$TMP_FILE_DURATION" >> "$COMPLETION_FILE_NAME"
-cat "$TMP_FILE_CPU" >> "$CPU_USAGE_FILE_NAME"
 
 rm "$TMP_FILE_CPU" "$TMP_FILE_DURATION"
