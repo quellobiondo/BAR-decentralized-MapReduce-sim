@@ -55,7 +55,7 @@ size_t choose_default_map_task (size_t wid)
     for (chunk = 0; chunk < config.chunk_count; chunk++)
     {
 	task_type = get_task_type (MAP, chunk, wid);
-
+	//task_type != NONE only if PENDING or SLOW
 	if (task_type == LOCAL)
 	{
 	    tid = chunk;
