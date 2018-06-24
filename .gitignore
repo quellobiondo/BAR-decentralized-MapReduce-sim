@@ -64,3 +64,6 @@ analysis/data/*/*.csv
 analysis/data/*/*.plist
 
 .Rproj.user
+
+# Log files
+*.log
