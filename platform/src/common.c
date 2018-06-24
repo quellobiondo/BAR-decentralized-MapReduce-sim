@@ -124,8 +124,25 @@ size_t reduce_input_size(size_t rid) {
  * Improvement idea: consider also the failures like in MOON?
  */
 int number_of_task_replicas(){
-	int necessary_replicas_to_be_BFT = 2*config.byzantine + 1;
-	return min(config.number_of_workers, necessary_replicas_to_be_BFT);
+	return config.number_of_workers;
 }
+
+char* task_type_string(enum task_type_e task_type) {
+	switch (task_type) {
+	case REMOTE:
+		return "(non-local)";
+
+	case LOCAL_SPEC:
+	case SPECULATIVE:
+		return "(speculative)";
+
+	case REMOTE_SPEC:
+		return "(non-local, speculative)";
+
+	default:
+		return "";
+	}
+}
+
 
 // vim: set ts=8 sw=4:

@@ -29,6 +29,7 @@ along with MRSG.  If not, see <http://www.gnu.org/licenses/>. */
 size_t default_scheduler_f (enum phase_e phase, size_t wid);
 size_t choose_default_map_task (size_t wid);
 size_t choose_default_reduce_task (size_t wid);
+size_t send_scheduled_task(enum phase_e phase, size_t wid);
 
 #endif /* !SCHEDULING_H */
 

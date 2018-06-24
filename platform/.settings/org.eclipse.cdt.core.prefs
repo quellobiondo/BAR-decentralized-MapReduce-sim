@@ -1,0 +1,6 @@
+eclipse.preferences.version=1
+environment/project/0.183244149/PATH/delimiter=\:
+environment/project/0.183244149/PATH/operation=append
+environment/project/0.183244149/PATH/value=/bin\:/home/alberto/bin\:/home/alberto/.local/bin\:/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/usr/games\:/usr/local/games\:/snap/bin
+environment/project/0.183244149/append=true
+environment/project/0.183244149/appendContributed=true

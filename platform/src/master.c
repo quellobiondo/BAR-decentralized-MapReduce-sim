@@ -22,28 +22,11 @@
 #include "worker.h"
 #include "dfs.h"
 #include "DLT.h"
+#include "master.h"
 
 XBT_LOG_EXTERNAL_DEFAULT_CATEGORY(msg_test);
 
 static FILE* tasks_log;
-
-static void print_config(void);
-static void print_stats(void);
-static int is_straggler(msg_host_t worker);
-static int task_time_elapsed(msg_task_t task);
-static void set_speculative_tasks(msg_host_t worker);
-static void send_scheduler_task(enum phase_e phase, size_t wid);
-static void update_stats(enum task_type_e task_type);
-static void send_task(enum phase_e phase, size_t tid, size_t data_src,
-		size_t wid);
-char* task_type_string(enum task_type_e task_type);
-static void finish_all_task_copies(task_info_t ti);
-static int enough_result_confirmation(task_info_t ti);
-void scheduleFunction(void);
-void processTaskCompletion(task_info_t ti, msg_host_t worker);
-
-
-int *capacity[2]; //[PHASE][WORKER] number of free slots in that worker
 
 /** @brief  Main master function. */
 int master(int argc, char* argv[]) {
@@ -84,8 +67,6 @@ int master(int argc, char* argv[]) {
 
 	// while we have at least a task pending (MAP/REDUCE)
 	while (job.tasks_pending[MAP] + job.tasks_pending[REDUCE] > 0) {
-		// schedule the tasks
-		scheduleFunction();
 
 		msg = NULL;
 		status = receiveTimeout(&msg, MASTER_MAILBOX, 1);
@@ -132,7 +113,6 @@ int master(int argc, char* argv[]) {
 void processTaskCompletion(task_info_t ti, msg_host_t worker){
 	// increment result confirmations
 	job.task_confirmations[ti->phase][ti->id]++;
-	capacity[ti->phase][get_worker_id(worker)]++;
 
 	if (enough_result_confirmation(ti)){
 		// mark that task as done and finish everything
@@ -140,7 +120,7 @@ void processTaskCompletion(task_info_t ti, msg_host_t worker){
 		if (job.task_status[ti->phase][ti->id] != T_STATUS_DONE) {
 			job.task_status[ti->phase][ti->id] = T_STATUS_DONE;
 
-			finish_all_task_copies(ti); // pre-emption
+			// finish_all_task_copies(ti); // pre-emption
 			job.tasks_pending[ti->phase]--;
 
 			if (job.tasks_pending[ti->phase] <= 0) {
@@ -155,31 +135,8 @@ void processTaskCompletion(task_info_t ti, msg_host_t worker){
 	}
 }
 
-void scheduleFunction(void){
-	msg_host_t worker;
-	size_t worker_index;
-	size_t index;
-
-	for(worker_index = 0; worker_index < config.number_of_workers; worker_index++){
-		worker = config.workers[worker_index];
-
-		if (is_straggler(worker)) {
-			set_speculative_tasks(worker);
-		}
-		//TODO to check that in this way we don't assign to the stragglers too many tasks
-		// check if this worker can do more work
-
-		for(index = capacity[MAP][worker_index]; index > 0; index--){
-			send_scheduler_task(MAP, worker_index);
-		}
-		for(index = capacity[REDUCE][worker_index]; index > 0; index--){
-			send_scheduler_task(REDUCE, worker_index);
-		}
-	}
-}
-
 /** @brief  Print the job configuration. */
-static void print_config(void) {
+void print_config(void) {
 	XBT_INFO("JOB CONFIGURATION:");
 	XBT_INFO("slots: %d map, %d reduce", config.slots[MAP],
 			config.slots[REDUCE]);
@@ -201,7 +158,7 @@ static void print_config(void) {
 }
 
 /** @brief  Print job statistics. */
-static void print_stats(void) {
+void print_stats(void) {
 	XBT_INFO("JOB STATISTICS:");
 	XBT_INFO("local maps: %d", stats.map_local);
 	XBT_INFO("non-local maps: %d", stats.map_remote);
@@ -216,31 +173,6 @@ static void print_stats(void) {
 	XBT_INFO(" ");
 }
 
-/**
- * @brief  Checks if a worker is a straggler.
- * @param  worker  The worker to be probed
- * @return 1 if true, 0 if false.
- */
-static int is_straggler(msg_host_t worker) {
-	int task_count;
-	size_t wid;
-
-	wid = get_worker_id(worker);
-
-	/*
-	 * Number of tasks currently executed (number of slots per node - slots available = slot occupied = task currently executed)
-	 */
-
-	task_count = (config.slots[MAP] + config.slots[REDUCE])
-				- (capacity[MAP][wid] + capacity[REDUCE][wid]);
-
-	if (MSG_get_host_speed(worker) < config.grid_average_speed
-			&& task_count > 0)
-		return TRUE;
-
-	return FALSE;
-}
-
 /*
  *
  * BYZANTINE PARAMETERS SECTION
@@ -252,196 +184,11 @@ static int is_straggler(msg_host_t worker) {
  *
  * Other strategies are possible, like replication to be fault-tolerant
  */
-static int enough_result_confirmation(task_info_t ti){
-	int threshold_BFT = config.byzantine + 1;
-	return min(config.number_of_workers, threshold_BFT) <= job.task_confirmations[ti->phase][ti->id];
+int enough_result_confirmation(task_info_t ti){
+	return config.number_of_workers;
 }
 
-/**
- * @brief  Returns for how long a task is running.
- * @param  task  The task to be probed.
- * @return The amount of seconds since the beginning of the computation.
- */
-static int task_time_elapsed(msg_task_t task) {
-	task_info_t ti;
-
-	ti = (task_info_t) MSG_task_get_data(task);
-
-	return (MSG_task_get_compute_duration(task)
-			- MSG_task_get_remaining_computation(task))
-			/ MSG_get_host_speed(config.workers[ti->wid]);
-}
-
-/**
- * @brief  Mark the tasks of a straggler as possible speculative tasks.
- * @param  worker  The straggler worker.
- */
-static void set_speculative_tasks(msg_host_t worker) {
-	size_t tid;
-	size_t wid;
-	int phases[2]; phases[0] = MAP; phases[1] = REDUCE;
-	int phase_index, phase;
-	int timeout_phases[2]; timeout_phases[0] = TRIGGER_TIMEOUT_SPECULATIVE_MAP; timeout_phases[1] = TRIGGER_TIMEOUT_SPECULATIVE_REDUCE;
-
-	wid = get_worker_id(worker);
-
-	// mark all the tasks of the straggler node as available for speculative tasks in case they have timeouted.
-	for(phase_index = 0; phase_index < 2; phase_index++){
-		phase = phases[phase_index];
-
-		//if (job.heartbeats[wid].slots_av[phase] < config.slots[phase]) {
-		if(capacity[phase][wid] < config.slots[phase]){
-			for (tid = 0; tid < config.amount_of_tasks[phase]; tid++) {
-				if (job.task_list[phase][tid][wid] != NULL && job.task_status[phase][tid] == T_STATUS_TIP) {
-					//the task has to be already assigned to the straggler and it has to be in the running phase
-					if (task_time_elapsed(job.task_list[phase][tid][wid]) > timeout_phases[phase]) {
-						job.task_status[phase][tid] = T_STATUS_TIP_SLOW;
-					}
-				}
-			}
-		}
-	}
-}
-
-static void send_scheduler_task(enum phase_e phase, size_t wid) {
-	// it's the user scheduler that decides which task to execute
-	size_t tid = user.scheduler_f(phase, wid);
-
-	if (tid == NONE) {
-		return;
-	}
-
-	enum task_type_e task_type = get_task_type(phase, tid, wid);
-	size_t sid = NONE; // source of the chunk
-
-	if (task_type == LOCAL || task_type == LOCAL_SPEC) {
-		sid = wid;
-	} else if (task_type == REMOTE || task_type == REMOTE_SPEC) {
-		sid = find_random_chunk_owner(tid);
-	}
-
-	XBT_INFO("%s %zu assigned to %s %s", (phase == MAP ? "map" : "reduce"), tid,
-			MSG_host_get_name(config.workers[wid]),
-			task_type_string(task_type));
-
-	send_task(phase, tid, sid, wid);
-
-	update_stats(task_type);
-}
-
-/*
- * @brief Tell to the scheduler which type is the task that it is processing
- *		  The type is different for MAP and REDUCE tasks
- *		  MAP -> LOCAL, REMOTE, LOCAL_SPEC, REMOTE_SPEC
- *		  REDUCE -> NORMAL, SPECULATIVE
- *		  To suggest the type of execution, it uses the "tip" from the job status.
- *		  - PENDING -> It means no issues
- *		  - SLOW -> Requires a speculative task
- *		  - COMPLETED -> No job to do here
- */
-enum task_type_e get_task_type(enum phase_e phase, size_t tid, size_t wid) {
-	enum task_status_e task_status = job.task_status[phase][tid];
-
-	switch (phase) {
-	case MAP:
-		switch (task_status) {
-		case T_STATUS_PENDING:
-			return chunk_owner[tid][wid] ? LOCAL : REMOTE;
-
-		case T_STATUS_TIP_SLOW:
-			return chunk_owner[tid][wid] ? LOCAL_SPEC : REMOTE_SPEC;
-
-		case T_STATUS_TIP:
-			return NO_TASK;
-
-		case T_STATUS_DONE:
-			return NO_TASK;
-
-		default:
-			xbt_die("Non treated task status: %d", task_status);
-		}
-		break;
-	case REDUCE:
-		switch (task_status) {
-		case T_STATUS_PENDING:
-			return NORMAL;
-
-		case T_STATUS_TIP_SLOW:
-			return SPECULATIVE;
-
-		case T_STATUS_TIP:
-			return NO_TASK;
-
-		case T_STATUS_DONE:
-			return NO_TASK;
-
-		default:
-			xbt_die("Non treated task status: %d", task_status);
-		}
-		break;
-	}
-	xbt_die("Non treated phase: %d", phase);
-}
-
-/**
- * @brief  Send a task to a worker.
- * @param  phase     The current job phase.
- * @param  tid       The task ID.
- * @param  data_src  The ID of the DataNode that owns the task data.
- * @param  wid       The destination worker id.
- */
-static void send_task(enum phase_e phase, size_t tid, size_t data_src,
-		size_t wid) {
-	char mailbox[MAILBOX_ALIAS_SIZE];
-	double cpu_required = 0.0;
-	msg_task_t task = NULL;
-	task_info_t task_info;
-	//msg_error_t status;
-
-	// for fault-tolerance we don't want to reassign a task to the same node
-	xbt_assert(job.task_list[phase][tid][wid] == NULL);
-
-	cpu_required = user.task_cost_f(phase, tid, wid);
-
-	task_info = xbt_new(struct task_info_s, 1);
-	task = MSG_task_create(SMS_TASK, cpu_required, 0.0, (void*) task_info);
-
-	task_info->phase = phase;
-	task_info->id = tid;
-	task_info->src = data_src;
-	task_info->wid = wid;
-	task_info->task = task;
-	task_info->shuffle_end = 0.0;
-
-	// for tracing purposes...
-	MSG_task_set_category(task, (phase == MAP ? "MAP" : "REDUCE"));
-
-	job.task_list[phase][tid][wid] = task;
-
-	if (job.task_status[phase][tid] == T_STATUS_TIP_SLOW){
-		job.task_replicas_instances[phase][tid]++;
-	}else{
-		job.task_instances[phase][tid]++;
-		if(job.task_instances[phase][tid] >= number_of_task_replicas())
-			job.task_status[phase][tid] = T_STATUS_TIP;
-	}
-
-	capacity[phase][wid]--;
-	//job.heartbeats[wid].slots_av[phase]--; //okay, it just tell that there is a slot that is less available
-
-	TRACE_host_set_state(MSG_host_get_name(MSG_host_self()), (phase == MAP ? "MAP" : "REDUCE"), "START");
-	fprintf(tasks_log, "%d_%zu_%lu,%s,%zu,%.3f,START,\n", phase, tid, wid,
-			(phase == MAP ? "MAP" : "REDUCE"), wid, MSG_get_clock());
-
-#ifdef VERBOSE
-	XBT_INFO ("TX: %s > %s", SMS_TASK, MSG_host_get_name (config.workers[wid]));
-#endif
-
-	sprintf(mailbox, TASKTRACKER_MAILBOX, wid);
-	xbt_assert(MSG_task_send(task, mailbox) == MSG_OK, "ERROR SENDING MESSAGE");
-}
-
-static void update_stats(enum task_type_e task_type) {
+void update_stats(enum task_type_e task_type) {
 	switch (task_type) {
 	case LOCAL:
 		stats.map_local++;
@@ -472,28 +219,11 @@ static void update_stats(enum task_type_e task_type) {
 	}
 }
 
-char* task_type_string(enum task_type_e task_type) {
-	switch (task_type) {
-	case REMOTE:
-		return "(non-local)";
-
-	case LOCAL_SPEC:
-	case SPECULATIVE:
-		return "(speculative)";
-
-	case REMOTE_SPEC:
-		return "(non-local, speculative)";
-
-	default:
-		return "";
-	}
-}
-
 /**
  * @brief  Kill all copies of a task.
  * @param  ti  The task information of any task instance.
  */
-static void finish_all_task_copies(task_info_t ti) {
+void finish_all_task_copies(task_info_t ti) {
 	int i;
 	int phase = ti->phase;
 	size_t tid = ti->id;

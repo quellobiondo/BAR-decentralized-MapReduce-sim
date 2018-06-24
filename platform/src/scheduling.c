@@ -17,6 +17,11 @@
 
 #include "scheduling.h" // get_task_type
 #include "common.h"
+#include "dfs.h"
+#include "master.h"
+
+void send_task(enum phase_e phase, size_t tid, size_t data_src,
+		size_t wid);
 
 XBT_LOG_EXTERNAL_DEFAULT_CATEGORY(msg_test); // @suppress("Unused variable declaration in file scope")
 
@@ -49,7 +54,6 @@ size_t default_scheduler_f(enum phase_e phase, size_t wid) {
 size_t choose_default_map_task(size_t wid /*, TODO list of tasks that need to be executed*/) {
 	size_t map_id;
 	size_t selected_task_id = NONE;
-	enum task_type_e task_type, best_task_type = NO_TASK;
 
 	/*
 	 * If there are no pending MAP tasks return none.
@@ -59,23 +63,14 @@ size_t choose_default_map_task(size_t wid /*, TODO list of tasks that need to be
 
 	/* Look for a task for the worker.
 	 *
-	 * Return the first local chunk in order of chunk id
+	 * Return the first chunk that the node hasn't done yet
 	 * or the second speculative task if it is remote, or speculative (with local speculative preferred to remote spec.)
 	 * */
 	for (map_id = 0; map_id < config.chunk_count; map_id++) {
 		//check if the task have already been executed by this node
 		if(job.task_list[MAP][map_id][wid] != NULL) continue;
-
-		task_type = get_task_type(MAP, map_id, wid);
-
-		if (task_type == LOCAL && job.task_instances[MAP][map_id] < number_of_task_replicas()) {
-			selected_task_id = map_id;
-			break;
-		} else if ((task_type == REMOTE && job.task_instances[MAP][map_id] < number_of_task_replicas())
-				|| (task_type < best_task_type && job.task_replicas_instances[MAP][map_id] < MAX_SPECULATIVE_COPIES)){
-			best_task_type = task_type;
-			selected_task_id = map_id;
-		}
+		selected_task_id = map_id;
+		break;
 	}
 
 	return selected_task_id;
@@ -89,7 +84,6 @@ size_t choose_default_map_task(size_t wid /*, TODO list of tasks that need to be
 size_t choose_default_reduce_task(size_t wid) {
 	size_t reduce_id;
 	size_t selected_task_id = NONE;
-	enum task_type_e task_type, best_task_type = NO_TASK;
 
 	/*
 	 * If there are no pending REDUCE tasks or
@@ -101,26 +95,153 @@ size_t choose_default_reduce_task(size_t wid) {
 		return NONE;
 
 	/*
-	 * Assign the job without notion of data locality, no optimization.
-	 * If no matches, then it assign a speculative task
+	 * return the first task that this node hasn't done yet
 	 */
 	for (reduce_id = 0; reduce_id < config.amount_of_tasks[REDUCE]; reduce_id++) {
 		//check if the task have already been executed by this node
 		if(job.task_list[REDUCE][reduce_id][wid] != NULL) continue;
 
-		task_type = get_task_type(REDUCE, reduce_id, wid);
-
-		if (task_type == NORMAL && job.task_instances[REDUCE][reduce_id] < number_of_task_replicas()) {
-			selected_task_id = reduce_id;
-			break;
-		} else if (task_type < best_task_type
-				&& job.task_replicas_instances[REDUCE][reduce_id] < MAX_SPECULATIVE_COPIES) {
-			best_task_type = task_type; // SPECULATIVE
-			selected_task_id = reduce_id;
-		}
+		selected_task_id = reduce_id;
+		break;
 	}
 
 	return selected_task_id;
+}
+
+
+size_t send_scheduled_task(enum phase_e phase, size_t wid) {
+	// it's the user scheduler that decides which task to execute
+	size_t tid = user.scheduler_f(phase, wid);
+
+	if (tid == NONE) {
+		return tid;
+	}
+
+	enum task_type_e task_type = get_task_type(phase, tid, wid);
+	size_t sid = NONE; // source of the chunk
+
+	if (task_type == LOCAL) {
+		sid = wid;
+	} else if (task_type == REMOTE) {
+		sid = find_random_chunk_owner(tid);
+	}
+
+	XBT_INFO("%s %zu assigned to %s %s", (phase == MAP ? "map" : "reduce"), tid,
+			MSG_host_get_name(config.workers[wid]),
+			task_type_string(task_type));
+
+	send_task(phase, tid, sid, wid);
+
+	update_stats(task_type);
+
+	return tid;
+}
+
+/*
+ * @brief Tell to the scheduler which type is the task that it is processing
+ *		  The type is different for MAP and REDUCE tasks
+ *		  MAP -> LOCAL, REMOTE, LOCAL_SPEC, REMOTE_SPEC
+ *		  REDUCE -> NORMAL, SPECULATIVE
+ *		  To suggest the type of execution, it uses the "tip" from the job status.
+ *		  - PENDING -> It means no issues
+ *		  - SLOW -> Requires a speculative task
+ *		  - COMPLETED -> No job to do here
+ */
+enum task_type_e get_task_type(enum phase_e phase, size_t tid, size_t wid) {
+	enum task_status_e task_status = job.task_status[phase][tid];
+
+	switch (phase) {
+	case MAP:
+		switch (task_status) {
+		case T_STATUS_PENDING:
+			return chunk_owner[tid][wid] ? LOCAL : REMOTE;
+
+		case T_STATUS_TIP_SLOW:
+			return chunk_owner[tid][wid] ? LOCAL_SPEC : REMOTE_SPEC;
+
+		case T_STATUS_TIP:
+			return NO_TASK;
+
+		case T_STATUS_DONE:
+			return NO_TASK;
+
+		default:
+			xbt_die("Non treated task status: %d", task_status);
+		}
+		break;
+	case REDUCE:
+		switch (task_status) {
+		case T_STATUS_PENDING:
+			return NORMAL;
+
+		case T_STATUS_TIP_SLOW:
+			return SPECULATIVE;
+
+		case T_STATUS_TIP:
+			return NO_TASK;
+
+		case T_STATUS_DONE:
+			return NO_TASK;
+
+		default:
+			xbt_die("Non treated task status: %d", task_status);
+		}
+		break;
+	}
+	xbt_die("Non treated phase: %d", phase);
+}
+
+/**
+ * @brief  Send a task to a worker.
+ * @param  phase     The current job phase.
+ * @param  tid       The task ID.
+ * @param  data_src  The ID of the DataNode that owns the task data.
+ * @param  wid       The destination worker id.
+ */
+void send_task(enum phase_e phase, size_t tid, size_t data_src,
+		size_t wid) {
+	char mailbox[MAILBOX_ALIAS_SIZE];
+	double cpu_required = 0.0;
+	msg_task_t task = NULL;
+	task_info_t task_info;
+	//msg_error_t status;
+
+	// for fault-tolerance we don't want to reassign a task to the same node
+	xbt_assert(job.task_list[phase][tid][wid] == NULL);
+
+	cpu_required = user.task_cost_f(phase, tid, wid);
+
+	task_info = xbt_new(struct task_info_s, 1);
+	task = MSG_task_create(SMS_TASK, cpu_required, 0.0, (void*) task_info);
+
+	task_info->phase = phase;
+	task_info->id = tid;
+	task_info->src = data_src;
+	task_info->wid = wid;
+	task_info->task = task;
+	task_info->shuffle_end = 0.0;
+
+	// for tracing purposes...
+	MSG_task_set_category(task, (phase == MAP ? "MAP" : "REDUCE"));
+
+	job.task_list[phase][tid][wid] = task;
+
+	if (job.task_status[phase][tid] == T_STATUS_TIP_SLOW){
+		job.task_replicas_instances[phase][tid]++;
+	}else{
+		job.task_instances[phase][tid]++;
+		if(job.task_instances[phase][tid] >= number_of_task_replicas())
+			job.task_status[phase][tid] = T_STATUS_TIP;
+	}
+
+	TRACE_host_set_state(MSG_host_get_name(MSG_host_self()), (phase == MAP ? "MAP" : "REDUCE"), "START");
+
+#ifdef VERBOSE
+	XBT_INFO ("TX: %s > %s", SMS_TASK, MSG_host_get_name (config.workers[wid]));
+#endif
+
+	sprintf(mailbox, TASKTRACKER_MAILBOX, wid);
+	xbt_assert(MSG_task_send(task, mailbox) == MSG_OK, "ERROR SENDING MESSAGE");
 }
 
 // vim: set ts=8 sw=4:

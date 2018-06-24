@@ -18,6 +18,8 @@
 #include "common.h"
 #include "dfs.h"
 #include "worker.h"
+#include "master.h"
+#include "scheduling.h"
 
 XBT_LOG_EXTERNAL_DEFAULT_CATEGORY(msg_test); // @suppress("Unused variable declaration in file scope")
 
@@ -79,10 +81,40 @@ int worker(int argc, char* argv[]) {
  * @brief  The heartbeat loop.
  */
 static void heartbeat(void) {
+	msg_host_t localhost;
+	size_t index;
+	size_t localhost_id;
+	size_t assigned = 0;
+
+	localhost = MSG_host_self();
+	localhost_id = get_worker_id(localhost);
+
 	while (!job.finished) {
+		//here we schedule as well...
+
+//		if(config.amount_of_tasks[MAP] + config.amount_of_tasks[REDUCE] > task_completed){
+//		anyway, we assign only the tasks to the ones that didn't executed that task yet
+		assigned = 0;
+		for(index = 0; index < capacity[MAP][localhost_id]; index++){
+			if(send_scheduled_task(MAP, localhost_id)!= NONE){
+				assigned ++;
+			}
+		}
+		capacity[MAP][localhost_id] -= assigned;
+
+		assigned = 0;
+		for(index = 0; index < capacity[REDUCE][localhost_id]; index++){
+			if(send_scheduled_task(REDUCE, localhost_id) != NONE){
+				assigned ++;
+			}
+		}
+		capacity[REDUCE][localhost_id] -= assigned;
+
+//		}
+
 		// TODO to replace with BAR fault tolerant mechanism
 		// send_sms(SMS_HEARTBEAT, DLT_MAILBOX);
-		MSG_process_sleep(config.heartbeat_interval);
+		MSG_process_sleep(1);
 	}
 }
 
@@ -94,22 +126,30 @@ static int listen(int argc, char* argv[]) {
 	msg_error_t status;
 	msg_host_t localhost;
 	msg_task_t current_task = NULL;
+	task_info_t ti;
+	size_t localhost_id;
 
 	localhost = MSG_host_self();
-	sprintf(mailbox, TASKTRACKER_MAILBOX, get_worker_id(localhost));
+	localhost_id = get_worker_id(localhost);
+	sprintf(mailbox, TASKTRACKER_MAILBOX, localhost_id);
 
 	while (!job.finished) {
 		current_task = NULL;
 		status = receive(&current_task, mailbox);
-	#ifdef VERBOSE
+
 		XBT_INFO ("INFO: received a task");
-	#endif
 
 		if (status == MSG_OK && message_is(current_task, SMS_TASK)) {
 			MSG_process_create("compute", compute, current_task, localhost);
 		} else if (message_is(current_task, SMS_FINISH)) {
 			MSG_task_destroy(current_task);
 			break;
+		} else if (message_is(current_task, SMS_TASK_DONE)) {
+			ti = (task_info_t) MSG_task_get_data(current_task);
+
+			capacity[ti->phase][localhost_id]++;
+
+			MSG_task_destroy(current_task);
 		}
 	}
 
@@ -122,10 +162,16 @@ static int listen(int argc, char* argv[]) {
  * We assign to this function directly a single task to execute
  */
 static int compute(int argc, char* argv[]) {
-	msg_error_t status;
 	msg_task_t task;
 	task_info_t ti;
 	xbt_ex_t e;
+	char mailbox[MAILBOX_ALIAS_SIZE];
+	msg_host_t localhost;
+	size_t localhost_id;
+
+	localhost = MSG_host_self();
+	localhost_id = get_worker_id(localhost);
+
 
 	task = (msg_task_t) MSG_process_get_data(MSG_process_self());
 	ti = (task_info_t) MSG_task_get_data(task);
@@ -143,7 +189,9 @@ static int compute(int argc, char* argv[]) {
 
 	case REDUCE:
 		TRACE_host_set_state(MSG_host_get_name(MSG_host_self()), "REDUCE-INPUT-FETCHING", "BEGIN");
+		XBT_INFO("Reduce input fetching starts...");
 		get_map_output(ti);
+		XBT_INFO("Reduce input fetching ends...");
 		TRACE_host_set_state(MSG_host_get_name(MSG_host_self()), "REDUCE-INPUT-FETCHING", "END");
 		break;
 	}
@@ -156,9 +204,9 @@ static int compute(int argc, char* argv[]) {
 	if (job.task_status[ti->phase][ti->id] != T_STATUS_DONE) {
 
 		TRY{
-			status = MSG_task_execute(task);
+			MSG_task_execute(task);
 
-			if (ti->phase == MAP && status == MSG_OK)
+			if (ti->phase == MAP)
 				update_intermediate_result_owner(ti->id, get_worker_id(MSG_host_self()));
 			}
 		CATCH(e){
@@ -168,16 +216,12 @@ static int compute(int argc, char* argv[]) {
 	}
 	TRACE_host_set_state(MSG_host_get_name(MSG_host_self()), ti->phase == MAP ? "MAP-EXECUTION" : "REDUCE-EXECUTION", "END");
 
-	/*
-	 * How the heartbeats are incremented
-	 * What is slots_av?
-	 * */
-	// NOT HERE, BUT IN THE SCHEDULER job.heartbeats[ti->wid].slots_av[ti->phase]++;
 
-	// TODO: update, send just to the blockchain
-	if (!job.finished)
+	if (!job.finished) {
 		send(SMS_TASK_DONE, 0.0, 0.0, ti, DLT_MAILBOX);
-
+		sprintf(mailbox, TASKTRACKER_MAILBOX, localhost_id);
+		send(SMS_TASK_DONE, 0.0, 0.0, ti, mailbox);
+	}
 	return 0;
 }
 
@@ -250,12 +294,14 @@ static void get_map_output(task_info_t ti) {
 
 		// FIXME can be cleaned better, for example using a signal...
 		if (job.task_status[REDUCE][ti->id] == T_STATUS_DONE) {
+			XBT_INFO("This reduced has already completed %lu", ti->id);
 			xbt_free_ref(&data_copied);
 			return;
 		}
 
 		// check if this map is finished without producing any data
 		if(job.map_output[map_index][ti->id] <= 0 && job.task_status[MAP][map_index] == T_STATUS_DONE){
+			XBT_INFO("This map %lu has produced nothing...", map_index);
 			continue; //nothing to download from this map_id
 		}
 
@@ -263,16 +309,21 @@ static void get_map_output(task_info_t ti) {
 		// Of course we can do this process more efficient, without blocking the whole queue first
 		// secondly streaming the intermediate data...
 		while(job.task_status[MAP][map_index] != T_STATUS_DONE){
-			xbt_sleep(0.1);
+			XBT_INFO("Waiting that the map %lu completes...", map_index);
+			xbt_sleep(5);
 		}
 
 		// check if I have it locally
 		if(map_output_owner[map_index][ti->id][my_id]){
+			XBT_INFO("I am the owner of this chunk, yay!");
+
 			data_copied[map_index] = user.map_output_f(map_index, ti->id);
 			total_copied += user.map_output_f(map_index, ti->id);
 
 			stats.reduce_local_map_result++;
 		}else{
+			XBT_INFO("I am not the owner of this map %lu...", map_index);
+
 			// if this map id has produced data that I need and I didn't downloaded yet, I'll do it right now
 			// loop on this map task until we'll finish to download all the data needed
 			while(job.map_output[map_index][ti->id] > data_copied[map_index]){
