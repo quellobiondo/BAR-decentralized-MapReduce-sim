@@ -69,8 +69,8 @@ int worker(int argc, char* argv[]) {
 
 	sprintf(mailbox, DATANODE_MAILBOX, get_worker_id(me));
 	send_sms(SMS_FINISH, mailbox);
-	sprintf(mailbox, TASKTRACKER_MAILBOX, get_worker_id(me));
-	send_sms(SMS_FINISH, mailbox);
+	//sprintf(mailbox, TASKTRACKER_MAILBOX, get_worker_id(me));
+	//send_sms(SMS_FINISH, mailbox);
 
 	return 0;
 }
@@ -90,27 +90,72 @@ static void heartbeat(void) {
  * @brief  Process that listens for tasks.
  */
 static int listen(int argc, char* argv[]) {
-	char mailbox[MAILBOX_ALIAS_SIZE];
+	char mailbox_map[MAILBOX_ALIAS_SIZE];
+	char mailbox_reduce[MAILBOX_ALIAS_SIZE];
+	char mailbox_completed[MAILBOX_ALIAS_SIZE];
+
 	msg_error_t status;
 	msg_host_t localhost;
 	msg_task_t current_task = NULL;
+	task_info_t ti;
+	size_t localhost_id;
 
 	localhost = MSG_host_self();
-	sprintf(mailbox, TASKTRACKER_MAILBOX, get_worker_id(localhost));
+	localhost_id = get_worker_id(localhost);
+
+	sprintf(mailbox_completed, COMPLETED_TASKTRACKER_MAILBOX, localhost_id);
+	sprintf(mailbox_map, MAP_TASKTRACKER_MAILBOX, localhost_id);
+	sprintf(mailbox_reduce, REDUCE_TASKTRACKER_MAILBOX, localhost_id);
 
 	while (!job.finished) {
 		current_task = NULL;
-		status = receive(&current_task, mailbox);
-	#ifdef VERBOSE
-		XBT_INFO ("INFO: received a task");
-	#endif
 
-		if (status == MSG_OK && message_is(current_task, SMS_TASK)) {
-			MSG_process_create("compute", compute, current_task, localhost);
-		} else if (message_is(current_task, SMS_FINISH)) {
-			MSG_task_destroy(current_task);
-			break;
+		if(MSG_task_listen(mailbox_completed)){
+			status = receive(&current_task, mailbox_completed);
+
+			xbt_assert(status == MSG_OK);
+
+			if (message_is(current_task, SMS_TASK_DONE)) {
+				ti = (task_info_t) MSG_task_get_data(current_task);
+
+				capacity[ti->phase][localhost_id]++;
+			} else {
+				XBT_WARN("Received unexpected message");
+			}
 		}
+		if(MSG_task_listen(mailbox_map) && capacity[MAP][localhost_id] > 0){
+			// there is a MAP task
+			status = receive(&current_task, mailbox_map);
+
+			xbt_assert(status == MSG_OK);
+
+			if (message_is(current_task, SMS_TASK)) {
+
+				MSG_process_create("compute", compute, current_task, localhost);
+
+				capacity[MAP][localhost_id]--;
+			} else {
+				XBT_WARN("Received unexpected message");
+			}
+		}
+		if(MSG_task_listen(mailbox_reduce) && capacity[REDUCE][localhost_id] > 0){
+			// there is a MAP task
+			status = receive(&current_task, mailbox_reduce);
+
+			xbt_assert(status == MSG_OK);
+
+			if (message_is(current_task, SMS_TASK)) {
+
+				MSG_process_create("compute", compute, current_task, localhost);
+
+				capacity[REDUCE][localhost_id]--;
+
+			} else {
+				XBT_WARN("Received unexpected message");
+			}
+		}
+		MSG_process_sleep(0.5);
+
 	}
 
 	return 0;
@@ -126,6 +171,13 @@ static int compute(int argc, char* argv[]) {
 	msg_task_t task;
 	task_info_t ti;
 	xbt_ex_t e;
+	char mailbox[MAILBOX_ALIAS_SIZE];
+	msg_host_t localhost;
+	size_t localhost_id;
+
+	localhost = MSG_host_self();
+	localhost_id = get_worker_id(localhost);
+
 
 	task = (msg_task_t) MSG_process_get_data(MSG_process_self());
 	ti = (task_info_t) MSG_task_get_data(task);
@@ -136,21 +188,19 @@ static int compute(int argc, char* argv[]) {
 	 * */
 	switch (ti->phase) {
 	case MAP:
-		TRACE_host_set_state(MSG_host_get_name(MSG_host_self()), "MAP-INPUT-FETCHING", "BEGIN");
+		TRACE_host_set_state(MSG_host_get_name(localhost), "MAP-INPUT-FETCHING", "BEGIN");
 		get_chunk(ti);
-		TRACE_host_set_state(MSG_host_get_name(MSG_host_self()), "MAP-INPUT-FETCHING", "END");
+		TRACE_host_set_state(MSG_host_get_name(localhost), "MAP-INPUT-FETCHING", "END");
 		break;
 
 	case REDUCE:
-		TRACE_host_set_state(MSG_host_get_name(MSG_host_self()), "REDUCE-INPUT-FETCHING", "BEGIN");
+		TRACE_host_set_state(MSG_host_get_name(localhost), "REDUCE-INPUT-FETCHING", "BEGIN");
 		get_map_output(ti);
 		TRACE_host_set_state(MSG_host_get_name(MSG_host_self()), "REDUCE-INPUT-FETCHING", "END");
 		break;
 	}
 
-	#ifdef VERBOSE
-		XBT_INFO ("INFO: start %s execution", ti->phase == MAP ? "MAP" : "REDUCE");
-	#endif
+	XBT_VERB("INFO: start %s execution of task %lu", ti->phase == MAP ? "MAP" : "REDUCE", ti->id);
 
 	TRACE_host_set_state(MSG_host_get_name(MSG_host_self()), ti->phase == MAP ? "MAP-EXECUTION" : "REDUCE-EXECUTION", "BEGIN");
 	if (job.task_status[ti->phase][ti->id] != T_STATUS_DONE) {
@@ -175,8 +225,11 @@ static int compute(int argc, char* argv[]) {
 	// NOT HERE, BUT IN THE SCHEDULER job.heartbeats[ti->wid].slots_av[ti->phase]++;
 
 	// TODO: update, send just to the blockchain
-	if (!job.finished)
+	if (!job.finished) {
 		send(SMS_TASK_DONE, 0.0, 0.0, ti, DLT_MAILBOX);
+		sprintf(mailbox, COMPLETED_TASKTRACKER_MAILBOX, localhost_id);
+		send(SMS_TASK_DONE, 0.0, 0.0, ti, mailbox);
+	}
 
 	return 0;
 }
@@ -250,12 +303,14 @@ static void get_map_output(task_info_t ti) {
 
 		// FIXME can be cleaned better, for example using a signal...
 		if (job.task_status[REDUCE][ti->id] == T_STATUS_DONE) {
+			XBT_INFO("Reduce already completed");
 			xbt_free_ref(&data_copied);
 			return;
 		}
 
 		// check if this map is finished without producing any data
 		if(job.map_output[map_index][ti->id] <= 0 && job.task_status[MAP][map_index] == T_STATUS_DONE){
+			XBT_INFO("No results for this map output");
 			continue; //nothing to download from this map_id
 		}
 
@@ -263,7 +318,7 @@ static void get_map_output(task_info_t ti) {
 		// Of course we can do this process more efficient, without blocking the whole queue first
 		// secondly streaming the intermediate data...
 		while(job.task_status[MAP][map_index] != T_STATUS_DONE){
-			xbt_sleep(0.1);
+			MSG_process_sleep(1);
 		}
 
 		// check if I have it locally

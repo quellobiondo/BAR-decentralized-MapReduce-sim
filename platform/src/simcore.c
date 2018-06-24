@@ -220,6 +220,13 @@ static void init_config(void) {
 
 	config.workers = xbt_new(msg_host_t, config.number_of_workers);
 
+	capacity[MAP] = xbt_new0(int, config.number_of_workers);
+	capacity[REDUCE] = xbt_new0(int, config.number_of_workers);
+	for(wid=0; wid<config.number_of_workers; wid++){
+		capacity[MAP][wid] = config.slots[MAP];
+		capacity[REDUCE][wid] = config.slots[REDUCE];
+	}
+
 	//update the real number of byzantine nodes
 	config.byzantine = config.number_of_workers*config.byzantine/100;
 

@@ -25,8 +25,6 @@
 
 XBT_LOG_EXTERNAL_DEFAULT_CATEGORY(msg_test);
 
-static FILE* tasks_log;
-
 static void print_config(void);
 static void print_stats(void);
 static int is_straggler(msg_host_t worker);
@@ -42,9 +40,6 @@ static int enough_result_confirmation(task_info_t ti);
 void scheduleFunction(void);
 void processTaskCompletion(task_info_t ti, msg_host_t worker);
 
-
-int *capacity[2]; //[PHASE][WORKER] number of free slots in that worker
-
 /** @brief  Main master function. */
 int master(int argc, char* argv[]) {
 //	heartbeat_t heartbeat;
@@ -54,14 +49,7 @@ int master(int argc, char* argv[]) {
 	DLT_block_t block = NULL;
 	task_info_t ti;
 	msg_process_t DLT_process;
-	int tx_counter, i;
-
-	capacity[MAP] = xbt_new0(int, config.number_of_workers);
-	capacity[REDUCE] = xbt_new0(int, config.number_of_workers);
-	for(i=0; i<config.number_of_workers; i++){
-		capacity[MAP][i] = config.slots[MAP];
-		capacity[REDUCE][i] = config.slots[REDUCE];
-	}
+	int tx_counter;
 
 
 	TRACE_host_state_declare("MAP");
@@ -79,43 +67,40 @@ int master(int argc, char* argv[]) {
 	XBT_INFO("JOB BEGIN");
 	XBT_INFO(" ");
 
-	tasks_log = fopen("tasks.csv", "w");
-	fprintf(tasks_log, "task_id,phase,worker_id,time,action,shuffle_end\n");
+	// schedule all the tasks
+	scheduleFunction();
 
 	// while we have at least a task pending (MAP/REDUCE)
 	while (job.tasks_pending[MAP] + job.tasks_pending[REDUCE] > 0) {
 		// schedule the tasks
 		scheduleFunction();
 
-		msg = NULL;
-		status = receiveTimeout(&msg, MASTER_MAILBOX, 1);
+		if (MSG_task_listen(MASTER_MAILBOX)) {
+			//a new block is here
+			msg = NULL;
+			status = receive(&msg, MASTER_MAILBOX);
 
-		if (status == MSG_OK) {
-			xbt_assert(message_is(msg, SMS_DLT_BLOCK), "Master received a message that is not from the DLT!");
-			block = (DLT_block_t) MSG_task_get_data(msg);
-			#ifdef VERBOSE
-				XBT_INFO ("INFO: Received a BLOCK");
-			#endif
+			if (status == MSG_OK) {
+				xbt_assert(message_is(msg, SMS_DLT_BLOCK), "Master received a message that is not from the DLT!");
+				block = (DLT_block_t) MSG_task_get_data(msg);
 
-			for(tx_counter = 0; tx_counter < block->size; tx_counter++){
-				worker = block->original_senders[tx_counter];
+				for(tx_counter = 0; tx_counter < block->size; tx_counter++){
+					worker = block->original_senders[tx_counter];
 
-				original_msg = block->original_messages[tx_counter];
+					original_msg = block->original_messages[tx_counter];
 
-				if (message_is(original_msg, SMS_TASK_DONE)) {
-					ti = (task_info_t) MSG_task_get_data(original_msg);
-					processTaskCompletion(ti, worker);
+					if (message_is(original_msg, SMS_TASK_DONE)) {
+						ti = (task_info_t) MSG_task_get_data(original_msg);
+						processTaskCompletion(ti, worker);
+					}
+					MSG_task_destroy(original_msg);
 				}
-				MSG_task_destroy(original_msg);
+				MSG_task_destroy(msg);
 			}
-			MSG_task_destroy(msg);
 		}
+
+		MSG_process_sleep(1);
 	}
-
-	xbt_free_f(capacity[MAP]);
-	xbt_free_f(capacity[REDUCE]);
-
-	fclose(tasks_log);
 
 	job.finished = 1;
 
@@ -126,21 +111,24 @@ int master(int argc, char* argv[]) {
 
 	XBT_INFO("JOB END");
 
+	xbt_free_f(capacity[MAP]);
+	xbt_free_f(capacity[REDUCE]);
+
 	return 0;
 }
 
 void processTaskCompletion(task_info_t ti, msg_host_t worker){
 	// increment result confirmations
 	job.task_confirmations[ti->phase][ti->id]++;
-	capacity[ti->phase][get_worker_id(worker)]++;
 
 	if (enough_result_confirmation(ti)){
 		// mark that task as done and finish everything
 		// task finished, clean up and communicate
 		if (job.task_status[ti->phase][ti->id] != T_STATUS_DONE) {
 			job.task_status[ti->phase][ti->id] = T_STATUS_DONE;
+			XBT_VERB("Completed %lu", ti->id);
 
-			finish_all_task_copies(ti); // pre-emption
+			// finish_all_task_copies(ti); // pre-emption
 			job.tasks_pending[ti->phase]--;
 
 			if (job.tasks_pending[ti->phase] <= 0) {
@@ -166,6 +154,7 @@ void scheduleFunction(void){
 		if (is_straggler(worker)) {
 			set_speculative_tasks(worker);
 		}
+
 		//TODO to check that in this way we don't assign to the stragglers too many tasks
 		// check if this worker can do more work
 
@@ -396,7 +385,7 @@ static void send_task(enum phase_e phase, size_t tid, size_t data_src,
 	double cpu_required = 0.0;
 	msg_task_t task = NULL;
 	task_info_t task_info;
-	//msg_error_t status;
+	msg_error_t status;
 
 	// for fault-tolerance we don't want to reassign a task to the same node
 	xbt_assert(job.task_list[phase][tid][wid] == NULL);
@@ -426,19 +415,18 @@ static void send_task(enum phase_e phase, size_t tid, size_t data_src,
 			job.task_status[phase][tid] = T_STATUS_TIP;
 	}
 
-	capacity[phase][wid]--;
 	//job.heartbeats[wid].slots_av[phase]--; //okay, it just tell that there is a slot that is less available
 
 	TRACE_host_set_state(MSG_host_get_name(MSG_host_self()), (phase == MAP ? "MAP" : "REDUCE"), "START");
-	fprintf(tasks_log, "%d_%zu_%lu,%s,%zu,%.3f,START,\n", phase, tid, wid,
-			(phase == MAP ? "MAP" : "REDUCE"), wid, MSG_get_clock());
 
-#ifdef VERBOSE
-	XBT_INFO ("TX: %s > %s", SMS_TASK, MSG_host_get_name (config.workers[wid]));
-#endif
+	XBT_VERB("TX: %s > %s", SMS_TASK, MSG_host_get_name (config.workers[wid]));
 
-	sprintf(mailbox, TASKTRACKER_MAILBOX, wid);
-	xbt_assert(MSG_task_send(task, mailbox) == MSG_OK, "ERROR SENDING MESSAGE");
+	switch(phase){
+	case MAP: sprintf(mailbox, MAP_TASKTRACKER_MAILBOX, wid); break;
+	case REDUCE: sprintf(mailbox, REDUCE_TASKTRACKER_MAILBOX, wid); break;
+	}
+
+	MSG_task_send(task, mailbox);
 }
 
 static void update_stats(enum task_type_e task_type) {
@@ -501,12 +489,6 @@ static void finish_all_task_copies(task_info_t ti) {
 	for (i = 0; i < config.number_of_workers; i++) {
 		if (job.task_list[phase][tid][i] != NULL) {
 			MSG_task_cancel(job.task_list[phase][tid][i]);
-
-			//FIXME: MSG_task_destroy (job.task_list[phase][tid][i]);
-			//job.task_list[phase][tid][i] = NULL;
-			fprintf(tasks_log, "%d_%zu_%d,%s,%zu,%.3f,END,%.3f\n", ti->phase,
-					tid, i, (ti->phase == MAP ? "MAP" : "REDUCE"), ti->wid,
-					MSG_get_clock(), ti->shuffle_end);
 		}
 	}
 }

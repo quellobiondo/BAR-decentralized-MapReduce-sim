@@ -49,7 +49,9 @@ along with MRSG.  If not, see <http://www.gnu.org/licenses/>. */
 #define MASTER_MAILBOX "MASTER"
 #define DLT_MAILBOX "DLT"
 #define DATANODE_MAILBOX "%zu:DN"
-#define TASKTRACKER_MAILBOX "%zu:TT"
+#define MAP_TASKTRACKER_MAILBOX "%zu:TTMAP"
+#define REDUCE_TASKTRACKER_MAILBOX "%zu:TTREDUCE"
+#define COMPLETED_TASKTRACKER_MAILBOX "%zu:TTCOMPLETED"
 #define TASK_MAILBOX "%zu:%d"
 
 /** @brief  Possible task status. */
@@ -200,6 +202,8 @@ size_t reduce_input_size (size_t rid);
 enum task_type_e get_task_type (enum phase_e phase, size_t tid, size_t wid);
 
 int number_of_task_replicas();
+
+int *capacity[2]; //[PHASE][WORKER] number of free slots in that worker
 
 #endif /* !MRSG_COMMON_H */
 
