@@ -19,9 +19,7 @@
 #include "common.h"
 #include "dfs.h"
 #include "master.h"
-
-void send_task(enum phase_e phase, size_t tid, size_t data_src,
-		size_t wid);
+#include "worker.h"
 
 XBT_LOG_EXTERNAL_DEFAULT_CATEGORY(msg_test); // @suppress("Unused variable declaration in file scope")
 
@@ -130,7 +128,7 @@ size_t send_scheduled_task(enum phase_e phase, size_t wid) {
 			MSG_host_get_name(config.workers[wid]),
 			task_type_string(task_type));
 
-	send_task(phase, tid, sid, wid);
+	execute_task(phase, tid, sid);
 
 	update_stats(task_type);
 
@@ -189,59 +187,6 @@ enum task_type_e get_task_type(enum phase_e phase, size_t tid, size_t wid) {
 		break;
 	}
 	xbt_die("Non treated phase: %d", phase);
-}
-
-/**
- * @brief  Send a task to a worker.
- * @param  phase     The current job phase.
- * @param  tid       The task ID.
- * @param  data_src  The ID of the DataNode that owns the task data.
- * @param  wid       The destination worker id.
- */
-void send_task(enum phase_e phase, size_t tid, size_t data_src,
-		size_t wid) {
-	char mailbox[MAILBOX_ALIAS_SIZE];
-	double cpu_required = 0.0;
-	msg_task_t task = NULL;
-	task_info_t task_info;
-	//msg_error_t status;
-
-	// for fault-tolerance we don't want to reassign a task to the same node
-	xbt_assert(job.task_list[phase][tid][wid] == NULL);
-
-	cpu_required = user.task_cost_f(phase, tid, wid);
-
-	task_info = xbt_new(struct task_info_s, 1);
-	task = MSG_task_create(SMS_TASK, cpu_required, 0.0, (void*) task_info);
-
-	task_info->phase = phase;
-	task_info->id = tid;
-	task_info->src = data_src;
-	task_info->wid = wid;
-	task_info->task = task;
-	task_info->shuffle_end = 0.0;
-
-	// for tracing purposes...
-	MSG_task_set_category(task, (phase == MAP ? "MAP" : "REDUCE"));
-
-	job.task_list[phase][tid][wid] = task;
-
-	if (job.task_status[phase][tid] == T_STATUS_TIP_SLOW){
-		job.task_replicas_instances[phase][tid]++;
-	}else{
-		job.task_instances[phase][tid]++;
-		if(job.task_instances[phase][tid] >= number_of_task_replicas())
-			job.task_status[phase][tid] = T_STATUS_TIP;
-	}
-
-	TRACE_host_set_state(MSG_host_get_name(MSG_host_self()), (phase == MAP ? "MAP" : "REDUCE"), "START");
-
-#ifdef VERBOSE
-	XBT_INFO ("TX: %s > %s", SMS_TASK, MSG_host_get_name (config.workers[wid]));
-#endif
-
-	sprintf(mailbox, TASKTRACKER_MAILBOX, wid);
-	xbt_assert(MSG_task_send(task, mailbox) == MSG_OK, "ERROR SENDING MESSAGE");
 }
 
 // vim: set ts=8 sw=4:

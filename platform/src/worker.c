@@ -25,9 +25,10 @@ XBT_LOG_EXTERNAL_DEFAULT_CATEGORY(msg_test); // @suppress("Unused variable decla
 
 static void heartbeat(void);
 static int listen(int argc, char* argv[]);
-static int compute(int argc, char* argv[]);
+int compute(int argc, char* argv[]);
 static void get_chunk(task_info_t ti);
 static void get_map_output(task_info_t ti);
+static void scheduleRoutine(size_t localhost_id);
 
 size_t get_worker_id(msg_host_t worker) {
 	w_info_t wi;
@@ -77,44 +78,43 @@ int worker(int argc, char* argv[]) {
 	return 0;
 }
 
+static void scheduleRoutine(size_t localhost_id) {
+	size_t index;
+	size_t assigned = 0;
+
+	assigned = 0;
+	for(index = 0; index < capacity[MAP][localhost_id]; index++){
+		if(send_scheduled_task(MAP, localhost_id)!= NONE){
+			assigned ++;
+		}
+	}
+	capacity[MAP][localhost_id] -= assigned;
+
+	assigned = 0;
+	for(index = 0; index < capacity[REDUCE][localhost_id]; index++){
+		if(send_scheduled_task(REDUCE, localhost_id) != NONE){
+			assigned ++;
+		}
+	}
+	capacity[REDUCE][localhost_id] -= assigned;
+}
+
 /**
  * @brief  The heartbeat loop.
  */
 static void heartbeat(void) {
-	msg_host_t localhost;
-	size_t index;
-	size_t localhost_id;
-	size_t assigned = 0;
-
-	localhost = MSG_host_self();
-	localhost_id = get_worker_id(localhost);
-
 	while (!job.finished) {
 		//here we schedule as well...
 
 //		if(config.amount_of_tasks[MAP] + config.amount_of_tasks[REDUCE] > task_completed){
 //		anyway, we assign only the tasks to the ones that didn't executed that task yet
-		assigned = 0;
-		for(index = 0; index < capacity[MAP][localhost_id]; index++){
-			if(send_scheduled_task(MAP, localhost_id)!= NONE){
-				assigned ++;
-			}
-		}
-		capacity[MAP][localhost_id] -= assigned;
 
-		assigned = 0;
-		for(index = 0; index < capacity[REDUCE][localhost_id]; index++){
-			if(send_scheduled_task(REDUCE, localhost_id) != NONE){
-				assigned ++;
-			}
-		}
-		capacity[REDUCE][localhost_id] -= assigned;
 
 //		}
 
 		// TODO to replace with BAR fault tolerant mechanism
 		// send_sms(SMS_HEARTBEAT, DLT_MAILBOX);
-		MSG_process_sleep(1);
+		MSG_process_sleep(config.heartbeat_interval);
 	}
 }
 
@@ -132,22 +132,20 @@ static int listen(int argc, char* argv[]) {
 	localhost = MSG_host_self();
 	localhost_id = get_worker_id(localhost);
 	sprintf(mailbox, TASKTRACKER_MAILBOX, localhost_id);
-
+	scheduleRoutine(localhost_id); //first assignements
 	while (!job.finished) {
 		current_task = NULL;
 		status = receive(&current_task, mailbox);
 
-		XBT_INFO ("INFO: received a task");
-
-		if (status == MSG_OK && message_is(current_task, SMS_TASK)) {
-			MSG_process_create("compute", compute, current_task, localhost);
-		} else if (message_is(current_task, SMS_FINISH)) {
+		if (message_is(current_task, SMS_FINISH)) {
 			MSG_task_destroy(current_task);
 			break;
 		} else if (message_is(current_task, SMS_TASK_DONE)) {
 			ti = (task_info_t) MSG_task_get_data(current_task);
 
 			capacity[ti->phase][localhost_id]++;
+
+			scheduleRoutine(localhost_id);
 
 			MSG_task_destroy(current_task);
 		}
@@ -156,18 +154,76 @@ static int listen(int argc, char* argv[]) {
 	return 0;
 }
 
+
+/**
+ * @brief  Send a task to a worker.
+ * @param  phase     The current job phase.
+ * @param  tid       The task ID.
+ * @param  data_src  The ID of the DataNode that owns the task data.
+ * @param  wid       The destination worker id.
+ */
+void execute_task(enum phase_e phase, size_t tid, size_t data_src) {
+	double cpu_required = 0.0;
+	msg_task_t task = NULL;
+	task_info_t task_info;
+	msg_host_t localhost;
+	size_t localhost_id;
+
+	localhost = MSG_host_self();
+	localhost_id = get_worker_id(localhost);
+
+	//msg_error_t status;
+
+	// for fault-tolerance we don't want to reassign a task to the same node
+	xbt_assert(job.task_list[phase][tid][localhost_id] == NULL);
+
+	cpu_required = user.task_cost_f(phase, tid, localhost_id);
+
+	task_info = xbt_new(struct task_info_s, 1);
+	task = MSG_task_create(SMS_TASK, cpu_required, 0.0, (void*) task_info);
+
+	task_info->phase = phase;
+	task_info->id = tid;
+	task_info->src = data_src;
+	task_info->wid = localhost_id;
+	task_info->task = task;
+	task_info->shuffle_end = 0.0;
+
+	// for tracing purposes...
+	MSG_task_set_category(task, (phase == MAP ? "MAP" : "REDUCE"));
+
+	job.task_list[phase][tid][localhost_id] = task;
+
+	if (job.task_status[phase][tid] == T_STATUS_TIP_SLOW){
+		job.task_replicas_instances[phase][tid]++;
+	}else{
+		job.task_instances[phase][tid]++;
+		if(job.task_instances[phase][tid] >= number_of_task_replicas())
+			job.task_status[phase][tid] = T_STATUS_TIP;
+	}
+
+	TRACE_host_set_state(MSG_host_get_name(localhost), (phase == MAP ? "MAP" : "REDUCE"), "START");
+
+#ifdef VERBOSE
+	XBT_INFO ("TX: %s > %s", SMS_TASK, MSG_host_get_name (config.workers[wid]));
+#endif
+
+	MSG_process_create("compute", compute, task, localhost);
+}
+
 /**
  * @brief  Process that computes a task.
  *
  * We assign to this function directly a single task to execute
  */
-static int compute(int argc, char* argv[]) {
+int compute(int argc, char* argv[]) {
 	msg_task_t task;
 	task_info_t ti;
 	xbt_ex_t e;
 	char mailbox[MAILBOX_ALIAS_SIZE];
 	msg_host_t localhost;
 	size_t localhost_id;
+
 
 	localhost = MSG_host_self();
 	localhost_id = get_worker_id(localhost);
@@ -182,6 +238,7 @@ static int compute(int argc, char* argv[]) {
 	 * */
 	switch (ti->phase) {
 	case MAP:
+
 		TRACE_host_set_state(MSG_host_get_name(MSG_host_self()), "MAP-INPUT-FETCHING", "BEGIN");
 		get_chunk(ti);
 		TRACE_host_set_state(MSG_host_get_name(MSG_host_self()), "MAP-INPUT-FETCHING", "END");
@@ -189,9 +246,7 @@ static int compute(int argc, char* argv[]) {
 
 	case REDUCE:
 		TRACE_host_set_state(MSG_host_get_name(MSG_host_self()), "REDUCE-INPUT-FETCHING", "BEGIN");
-		XBT_INFO("Reduce input fetching starts...");
 		get_map_output(ti);
-		XBT_INFO("Reduce input fetching ends...");
 		TRACE_host_set_state(MSG_host_get_name(MSG_host_self()), "REDUCE-INPUT-FETCHING", "END");
 		break;
 	}
@@ -294,36 +349,35 @@ static void get_map_output(task_info_t ti) {
 
 		// FIXME can be cleaned better, for example using a signal...
 		if (job.task_status[REDUCE][ti->id] == T_STATUS_DONE) {
-			XBT_INFO("This reduced has already completed %lu", ti->id);
+			XBT_WARN("This reduces has already completed %lu", ti->id);
 			xbt_free_ref(&data_copied);
 			return;
 		}
 
 		// check if this map is finished without producing any data
 		if(job.map_output[map_index][ti->id] <= 0 && job.task_status[MAP][map_index] == T_STATUS_DONE){
-			XBT_INFO("This map %lu has produced nothing...", map_index);
+			XBT_VERB("This map %lu has produced nothing...", map_index);
 			continue; //nothing to download from this map_id
 		}
 
 		// We need to wait the moment in which the task has completed to copy the data...
 		// Of course we can do this process more efficient, without blocking the whole queue first
 		// secondly streaming the intermediate data...
-		while(job.task_status[MAP][map_index] != T_STATUS_DONE){
-			XBT_INFO("Waiting that the map %lu completes...", map_index);
-			xbt_sleep(5);
+
+		//TODO change here in the future to support distributed storage, we just need to be sure that we are the producers of that intermediate result
+		while(!map_output_owner[map_index][ti->id][my_id]){
+			XBT_VERB("Waiting that the map %lu completes on the localhost...", map_index);
+			MSG_process_sleep(3);
 		}
 
 		// check if I have it locally
 		if(map_output_owner[map_index][ti->id][my_id]){
-			XBT_INFO("I am the owner of this chunk, yay!");
 
 			data_copied[map_index] = user.map_output_f(map_index, ti->id);
 			total_copied += user.map_output_f(map_index, ti->id);
 
 			stats.reduce_local_map_result++;
 		}else{
-			XBT_INFO("I am not the owner of this map %lu...", map_index);
-
 			// if this map id has produced data that I need and I didn't downloaded yet, I'll do it right now
 			// loop on this map task until we'll finish to download all the data needed
 			while(job.map_output[map_index][ti->id] > data_copied[map_index]){

@@ -31,6 +31,7 @@ typedef struct w_info_s {
  * @return The worker's ID number.
  */
 size_t get_worker_id (msg_host_t worker);
+void execute_task(enum phase_e phase, size_t tid, size_t data_src);
 
 #endif /* !WORKER_H */
 

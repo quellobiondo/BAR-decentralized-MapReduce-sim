@@ -67,22 +67,18 @@ int master(int argc, char* argv[]) {
 
 	// while we have at least a task pending (MAP/REDUCE)
 	while (job.tasks_pending[MAP] + job.tasks_pending[REDUCE] > 0) {
-
 		msg = NULL;
-		status = receiveTimeout(&msg, MASTER_MAILBOX, 1);
-
+		status = receive(&msg, MASTER_MAILBOX);
 		if (status == MSG_OK) {
 			xbt_assert(message_is(msg, SMS_DLT_BLOCK), "Master received a message that is not from the DLT!");
 			block = (DLT_block_t) MSG_task_get_data(msg);
 			#ifdef VERBOSE
 				XBT_INFO ("INFO: Received a BLOCK");
 			#endif
-
 			for(tx_counter = 0; tx_counter < block->size; tx_counter++){
 				worker = block->original_senders[tx_counter];
 
 				original_msg = block->original_messages[tx_counter];
-
 				if (message_is(original_msg, SMS_TASK_DONE)) {
 					ti = (task_info_t) MSG_task_get_data(original_msg);
 					processTaskCompletion(ti, worker);

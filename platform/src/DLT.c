@@ -35,7 +35,7 @@ int TrasactionPoolWorker(int argc, char *argv[]){
 			pool_tx[pool_index] = new_tx;
 			pool_index = (pool_index+1) % MAX_SIZE_POOL_TX;
 		}
-		MSG_process_sleep(0.5);
+		MSG_process_sleep(1);
 	}
 	return 0;
 }
@@ -75,14 +75,6 @@ int DLT(int argc, char *argv[]){
 
 	//	loop until we end the master stuff
 	while (!job.finished) {
-		TRACE_host_set_state(hostname, "BLOCK", "COMPUTATION");
-
-		#ifdef VERBOSE
-			XBT_INFO ("INFO Computing time to create a BLOCK");
-		#endif
-		// block for config.period_blockchain
-		MSG_process_sleep(max(config.block_period, 0.1));
-
 		tx_aggregated = pool_size;
 		#ifdef VERBOSE
 			XBT_INFO ("INFO sending %d transactions aggregated", tx_aggregated);
@@ -90,24 +82,28 @@ int DLT(int argc, char *argv[]){
 
 
 		TRACE_host_set_state(hostname, "BLOCK", "AGGREGATION");
-
 		// forward first config.blockdimension messages to master
 		for(block->size = 0; block->size < config.block_size && block->size < tx_aggregated; block->size++){
 			block->original_messages[block->size] = pool_tx[transferred_index].msg;
 			block->original_senders[block->size]= pool_tx[transferred_index].source;
 			transferred_index = (transferred_index+1) %  MAX_SIZE_POOL_TX;
 		}
-
 		pool_size -= block->size; //remove from the tx pool the transactions sent
+
+		TRACE_host_set_state(hostname, "BLOCK", "COMPUTATION");
+		#ifdef VERBOSE
+			XBT_INFO ("INFO Computing time to create a BLOCK");
+		#endif
+		// block for config.period_blockchain
+		MSG_process_sleep(max(config.block_period, 0.1));
 
 		if(block->size == 0) continue;
 
 		#ifdef VERBOSE
-			XBT_INFO ("Sendin BLOCK");
+			XBT_INFO ("Sending BLOCK");
 		#endif
 
 		TRACE_host_variable_set(hostname, "TRANSACTIONS", block->size);
-
 		task_envelope = MSG_task_create(SMS_DLT_BLOCK, 0, 0.0, (void*) block);
 		xbt_assert(MSG_task_send(task_envelope, MASTER_MAILBOX) == MSG_OK, "ERROR SENDING BLOCK");
 	}
