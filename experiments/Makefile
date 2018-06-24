@@ -11,7 +11,7 @@ TRACE_FOLDER = traces
 SRC_FILES=$(wildcard $(SOURCE_FOLDER)/*.c)
 BIN=$(SRC_FILES:$(SOURCE_FOLDER)/%.c=$(BIN_FOLDER)/%.bin)
 
-PLATFORM_LIB=../platform/libhadoopbft.a #MARS LIB
+PLATFORM_LIB=../platform/libhadoopbft.a
 
 all: $(BIN)
 

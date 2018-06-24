@@ -176,7 +176,9 @@ static void read_mr_config_file(const char* file_name) {
 	xbt_assert(config.slots[REDUCE] > 0,
 			"Reduce slots must be greater than zero");
 	xbt_assert(config.byzantine >= 0,
-				"Byzantine nodes must be at least zero");
+				"Byzantine nodes percentage must be at least zero");
+	xbt_assert(config.byzantine <= 100,
+				"Byzantine nodes percentage must be at maximum 100");
 }
 
 /**
@@ -204,6 +206,10 @@ static void init_config(void) {
 	}
 
 	config.workers = xbt_new(msg_host_t, config.number_of_workers);
+
+	//update the real number of byzantine nodes
+	config.byzantine = config.number_of_workers*config.byzantine/100;
+	//XBT_INF0("Number of byzantine nodes: %d", config.byzantine);
 
 	wid = 0;
 	config.grid_cpu_power = 0.0;
