@@ -102,7 +102,8 @@ static int listen(int argc, char* argv[]) {
 
 	xbt_queue_t map_tasks_queue = xbt_queue_new(config.amount_of_tasks[MAP], sizeof(msg_task_t));
 	xbt_queue_t reduce_tasks_queue = xbt_queue_new(config.amount_of_tasks[REDUCE], sizeof(msg_task_t));
-	XBT_INFO("Created two queues of: %d and %d elements", config.amount_of_tasks[MAP], config.amount_of_tasks[REDUCE]);
+	int map_queue_size = 0;
+	int reduce_queue_size = 0;
 
 	localhost = MSG_host_self();
 	localhost_id = get_worker_id(localhost);
@@ -135,6 +136,7 @@ static int listen(int argc, char* argv[]) {
 
 			if (message_is(current_task, SMS_TASK)) {
 				xbt_queue_push(map_tasks_queue, &current_task);
+				map_queue_size++;
 			} else {
 				XBT_WARN("Received unexpected message");
 			}
@@ -147,17 +149,22 @@ static int listen(int argc, char* argv[]) {
 
 			if (message_is(current_task, SMS_TASK)) {
 				xbt_queue_push(reduce_tasks_queue, &current_task);
+				reduce_queue_size++;
 			} else {
 				XBT_WARN("Received unexpected message");
 			}
 		}
-		while(capacity[MAP][localhost_id] > 0 && xbt_queue_length(map_tasks_queue) > 0){
+		while(capacity[MAP][localhost_id] > 0 && map_queue_size > 0){
 			xbt_queue_pop(map_tasks_queue, &current_task);
+			map_queue_size--;
+
 			MSG_process_create("compute", compute, current_task, localhost);
 			capacity[MAP][localhost_id]--;
 		}
-		while(capacity[REDUCE][localhost_id] > 0 && xbt_queue_length(reduce_tasks_queue) > 0){
+		while(capacity[REDUCE][localhost_id] > 0 && reduce_queue_size > 0){
 			xbt_queue_pop(reduce_tasks_queue, &current_task);
+			reduce_queue_size--;
+
 			MSG_process_create("compute", compute, current_task, localhost);
 			capacity[REDUCE][localhost_id]--;
 		}
