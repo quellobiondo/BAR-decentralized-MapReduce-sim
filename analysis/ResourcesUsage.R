@@ -18,7 +18,6 @@ cpu_data <- read_csv(file_name, col_names = TRUE, trim_ws = TRUE, col_types =
         mutate(CompleteTopology=paste(Topology, NumberOfNodes)) 
 # %>% filter(Config=="sumallcopies" | Config=="sumlowblocktime")
 
-
 by_configuration <- group_by(cpu_data, CompleteTopology, Platform, Config, Byzantine)
 cpu_active <- filter(by_configuration, Power>0) %>% summarise(total_cpu_time = sum(Time, na.rm = TRUE), total_power = sum(PowerTime, na.rm = TRUE))
 cpu_idle <- filter(by_configuration, Power==0) %>% summarize(total_idle_time = sum(Time, na.rm = TRUE))
@@ -37,7 +36,7 @@ ggplot(cpu_idle, aes(Platform, total_idle_time, fill = Byzantine, alpha = Config
 ggsave("resource_unused.jpg")
 
 # Other data analysis on Idle time of a specificPlatform
-specific_file_name="data/Cluster-10/variable.BLOCKCHAIN-100-sum.csv"
+specific_file_name="data/Cluster-10/variable.MARS_M-0-sum.csv"
 # Variable, chimint-16.lille.grid5000.fr, power, 0.000000, 648.167829, 648.167829, 23530999808.000000
 specific_cpu_data <- read_csv(specific_file_name, col_names = FALSE, trim_ws = TRUE, col_types = 
                        cols(
@@ -55,12 +54,11 @@ ggplot(specific_cpu_data, aes(X6, color = X2)) +
   geom_histogram(binwidth = 1, na.rm = TRUE) +
   labs(title = "Distribution of waiting time durations during the experiment, with blocktime = 15s and 100% Byzantines", x="Duration Idle Time", color="Node")
 
-
-ggsave("BLOCKCHAIN-100Byz-full-replicas-idle-histogram.jpg")
+ggsave("MARS_M-0Byz-full-replicas-idle-histogram.jpg")
 
 ggplot(specific_cpu_data, aes(X4, X6, color = X2)) +
   geom_jitter(size=1, na.rm = TRUE) +
-  coord_cartesian(ylim = c(0, 20), expand = TRUE) + 
+  #coord_cartesian(ylim = c(0, 20), expand = TRUE) + 
   labs(title = "Distribution of waiting time durations during the experiment, with blocktime = 15s and 100% byzantine", x="Start Event Time", y="Idle Time Duration", color="Node")
  
-ggsave("BLOCKCHAIN-100Byz-full-replicas-idle-points.jpg")
+ggsave("MARS_M-0Byz-full-replicas-idle-points.jpg")
