@@ -96,9 +96,10 @@ size_t choose_default_reduce_task(size_t wid) {
 	 * there are more than 90% of tasks still to be executed
 	 * Don't assign any reduce task
 	 */
-	if (job.tasks_pending[REDUCE] <= 0
+	/*if (job.tasks_pending[REDUCE] <= 0
 			|| ((float) job.tasks_pending[MAP]) / config.amount_of_tasks[MAP] > 0.9)
 		return NONE;
+	*/
 
 	/*
 	 * Assign the job without notion of data locality, no optimization.

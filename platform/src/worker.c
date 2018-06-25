@@ -100,6 +100,10 @@ static int listen(int argc, char* argv[]) {
 	task_info_t ti;
 	size_t localhost_id;
 
+	xbt_queue_t map_tasks_queue = xbt_queue_new(config.amount_of_tasks[MAP], sizeof(msg_task_t));
+	xbt_queue_t reduce_tasks_queue = xbt_queue_new(config.amount_of_tasks[REDUCE], sizeof(msg_task_t));
+	XBT_INFO("Created two queues of: %d and %d elements", config.amount_of_tasks[MAP], config.amount_of_tasks[REDUCE]);
+
 	localhost = MSG_host_self();
 	localhost_id = get_worker_id(localhost);
 
@@ -123,40 +127,46 @@ static int listen(int argc, char* argv[]) {
 				XBT_WARN("Received unexpected message");
 			}
 		}
-		if(MSG_task_listen(mailbox_map) && capacity[MAP][localhost_id] > 0){
+		if(MSG_task_listen(mailbox_map)){
 			// there is a MAP task
 			status = receive(&current_task, mailbox_map);
 
 			xbt_assert(status == MSG_OK);
 
 			if (message_is(current_task, SMS_TASK)) {
-
-				MSG_process_create("compute", compute, current_task, localhost);
-
-				capacity[MAP][localhost_id]--;
+				xbt_queue_push(map_tasks_queue, &current_task);
 			} else {
 				XBT_WARN("Received unexpected message");
 			}
 		}
-		if(MSG_task_listen(mailbox_reduce) && capacity[REDUCE][localhost_id] > 0){
+		if(MSG_task_listen(mailbox_reduce)){
 			// there is a MAP task
 			status = receive(&current_task, mailbox_reduce);
 
 			xbt_assert(status == MSG_OK);
 
 			if (message_is(current_task, SMS_TASK)) {
-
-				MSG_process_create("compute", compute, current_task, localhost);
-
-				capacity[REDUCE][localhost_id]--;
-
+				xbt_queue_push(reduce_tasks_queue, &current_task);
 			} else {
 				XBT_WARN("Received unexpected message");
 			}
 		}
+		while(capacity[MAP][localhost_id] > 0 && xbt_queue_length(map_tasks_queue) > 0){
+			xbt_queue_pop(map_tasks_queue, &current_task);
+			MSG_process_create("compute", compute, current_task, localhost);
+			capacity[MAP][localhost_id]--;
+		}
+		while(capacity[REDUCE][localhost_id] > 0 && xbt_queue_length(reduce_tasks_queue) > 0){
+			xbt_queue_pop(reduce_tasks_queue, &current_task);
+			MSG_process_create("compute", compute, current_task, localhost);
+			capacity[REDUCE][localhost_id]--;
+		}
 		MSG_process_sleep(0.5);
 
 	}
+
+	xbt_queue_free(&map_tasks_queue);
+	xbt_queue_free(&reduce_tasks_queue);
 
 	return 0;
 }

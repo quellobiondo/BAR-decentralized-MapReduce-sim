@@ -40,6 +40,8 @@ static int enough_result_confirmation(task_info_t ti);
 void scheduleFunction(void);
 void processTaskCompletion(task_info_t ti, msg_host_t worker);
 
+static int counter_created_instances = 0;
+
 /** @brief  Main master function. */
 int master(int argc, char* argv[]) {
 //	heartbeat_t heartbeat;
@@ -48,6 +50,7 @@ int master(int argc, char* argv[]) {
 	msg_task_t msg = NULL, original_msg = NULL;
 	DLT_block_t block = NULL;
 	task_info_t ti;
+	size_t worker_index;
 	msg_process_t DLT_process;
 	int tx_counter;
 
@@ -67,8 +70,19 @@ int master(int argc, char* argv[]) {
 	XBT_INFO("JOB BEGIN");
 	XBT_INFO(" ");
 
+	counter_created_instances = 0;
+
 	// schedule all the tasks
-	scheduleFunction();
+	while(counter_created_instances < (config.amount_of_tasks[MAP]+config.amount_of_tasks[REDUCE]) * number_of_task_replicas()){
+		for(worker_index = 0; worker_index < config.number_of_workers; worker_index++){
+
+			send_scheduler_task(MAP, worker_index);
+			send_scheduler_task(REDUCE, worker_index);
+		}
+		XBT_INFO(".... %d / %d", counter_created_instances, (config.amount_of_tasks[MAP]+config.amount_of_tasks[REDUCE]) * number_of_task_replicas());
+	}
+
+	XBT_INFO("Finished!");
 
 	// while we have at least a task pending (MAP/REDUCE)
 	while (job.tasks_pending[MAP] + job.tasks_pending[REDUCE] > 0) {
@@ -158,12 +172,9 @@ void scheduleFunction(void){
 		//TODO to check that in this way we don't assign to the stragglers too many tasks
 		// check if this worker can do more work
 
-		for(index = capacity[MAP][worker_index]; index > 0; index--){
-			send_scheduler_task(MAP, worker_index);
-		}
-		for(index = capacity[REDUCE][worker_index]; index > 0; index--){
-			send_scheduler_task(REDUCE, worker_index);
-		}
+		send_scheduler_task(MAP, worker_index);
+		send_scheduler_task(REDUCE, worker_index);
+
 	}
 }
 
@@ -314,6 +325,8 @@ static void send_scheduler_task(enum phase_e phase, size_t wid) {
 			task_type_string(task_type));
 
 	send_task(phase, tid, sid, wid);
+
+	counter_created_instances++;
 
 	update_stats(task_type);
 }
