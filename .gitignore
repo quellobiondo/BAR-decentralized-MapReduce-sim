@@ -67,3 +67,4 @@ analysis/data/*/*.plist
 
 # Log files
 *.log
+*.tmp
