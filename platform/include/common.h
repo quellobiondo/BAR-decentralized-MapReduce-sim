@@ -109,6 +109,7 @@ struct job_s {
     msg_task_t**  task_list[2];//[phase][task_id][worker id] -> collect the task descriptions for each task assigned to some node
     size_t**      map_output;//[map_id][reduce_id] -> collect which map has produced which keys and how much data it has produced for that key
     heartbeat_t   heartbeats;
+    int* 		  byzantine_flag; //flag the byzantine nodes, so to mark which one has to misbehave
 } job;
 
 /** @brief  Information sent as the task data. */

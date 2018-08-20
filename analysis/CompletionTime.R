@@ -18,18 +18,21 @@ data <- read_csv(file_name, col_names = TRUE, trim_ws = TRUE, col_types =
 ) %>% mutate(CompleteTopology=paste(Topology, NumberOfNodes))
 
 # data <- filter(data, Config=="sumallcopies"|Config=="sumlowblocktime")
-data <- filter(data, NumberOfNodes==10)
+data <- filter(data, NumberOfNodes==10, Platform!="MARS_S")
 ggplot(data, aes(Byzantine, TotalDuration, color = Platform)) +
-  #facet_wrap(~CompleteTopology) +
+  facet_wrap(~CompleteTopology) +
   geom_point(aes(shape = Config), size=3, na.rm = TRUE) +
-  geom_smooth(aes(linetype = Config), na.rm = TRUE, se = FALSE) +
+  geom_line(aes(linetype = Config), na.rm = TRUE, se = FALSE) +
+  coord_cartesian(xlim = c(0, 40), ylim = c(0, 400), expand = TRUE) + 
   labs(title = "Completion time increases with % of byzantine nodes and block creation time", x="% Byzantine nodes", y="Job Duration")
-ggsave("completion_time.jpg")
+ggsave("completion_time_10.jpg")
+
+data <- filter(data, Byzantine <= 30)
 
 ggplot(data, aes(Byzantine, TotalDuration, color = Platform)) +
-  #facet_wrap(~CompleteTopology) +
+  facet_wrap(~CompleteTopology) +
   geom_point(aes(shape = Config), size=3, na.rm = TRUE) +
-  geom_smooth(aes(linetype = Config), na.rm = TRUE, se = FALSE) +
-  coord_cartesian(xlim = c(0, 30), ylim = c(0, 400), expand = TRUE) + 
+  geom_line(aes(linetype = Config), na.rm = TRUE, se = FALSE) +
+  coord_cartesian(xlim = c(0, 30), ylim = c(0, 310), expand = TRUE) + 
   labs(title = "Completion time increase with % byzantine nodes and block creation time", x="% Byzantine nodes", y="Job Duration")
-ggsave("completion_time_detail.jpg")
+ggsave("completion_time_10_detail.jpg")

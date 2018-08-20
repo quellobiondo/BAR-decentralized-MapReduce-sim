@@ -16,6 +16,7 @@
  along with MRSG.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <msg/msg.h>
 #include <xbt/sysdep.h>
 #include <xbt/log.h>
@@ -260,7 +261,7 @@ static void init_config(void) {
  * @brief  Initialize the job structure.
  */
 static void init_job(void) {
-	int i;
+	int i, byz_index;
 	size_t wid;
 
 	xbt_assert(config.initialized,
@@ -271,6 +272,21 @@ static void init_job(void) {
 	for (wid = 0; wid < config.number_of_workers; wid++) {
 		job.heartbeats[wid].slots_av[MAP] = config.slots[MAP];
 		job.heartbeats[wid].slots_av[REDUCE] = config.slots[REDUCE];
+	}
+
+	srand(0); //deterministic random seed
+
+	job.byzantine_flag = xbt_new0(int, config.number_of_workers);
+	// assign the byzantine nodes randomly
+	for(i=0; i<config.byzantine; i++){
+		byz_index = rand() % config.number_of_workers;
+		if(job.byzantine_flag[byz_index]) {
+			//already assigned byzantine node
+			i--;
+			continue;
+		}else{
+			job.byzantine_flag[byz_index] = 1;
+		}
 	}
 
 	/* Initialize map information. */
@@ -301,6 +317,7 @@ static void init_job(void) {
 	for (i = 0; i < config.amount_of_tasks[REDUCE]; i++)
 		job.task_list[REDUCE][i] = xbt_new0(msg_task_t,
 				config.number_of_workers);
+
 }
 
 /**

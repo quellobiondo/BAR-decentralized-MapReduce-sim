@@ -1,20 +1,3 @@
-/* Copyright (c) 2012. MRSG Team. All rights reserved. */
-
-/* This file is part of MRSG.
-
- MRSG is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
-
- MRSG is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
-
- You should have received a copy of the GNU General Public License
- along with MRSG.  If not, see <http://www.gnu.org/licenses/>. */
-
 #include "common.h"
 #include "dfs.h"
 #include "worker.h"
@@ -157,16 +140,28 @@ static int listen(int argc, char* argv[]) {
 		while(capacity[MAP][localhost_id] > 0 && map_queue_size > 0){
 			xbt_queue_pop(map_tasks_queue, &current_task);
 			map_queue_size--;
-
-			MSG_process_create("compute", compute, current_task, localhost);
 			capacity[MAP][localhost_id]--;
+			if(job.byzantine_flag[localhost_id]){
+				// I am byzantine so misbehave
+				// the misbehavior is to do nothing...
+				capacity[MAP][localhost_id]++;
+				XBT_INFO("-> is acting maliciously during the MAP phase");
+			}else{
+				MSG_process_create("compute", compute, current_task, localhost);
+			}
 		}
 		while(capacity[REDUCE][localhost_id] > 0 && reduce_queue_size > 0){
 			xbt_queue_pop(reduce_tasks_queue, &current_task);
 			reduce_queue_size--;
-
-			MSG_process_create("compute", compute, current_task, localhost);
 			capacity[REDUCE][localhost_id]--;
+			if(job.byzantine_flag[localhost_id]){
+				// I am byzantine so misbehave
+				// the misbehavior is to do nothing...
+				capacity[REDUCE][localhost_id]++;
+				XBT_INFO("-> is acting maliciously during the REDUCE phase");
+			}else{
+				MSG_process_create("compute", compute, current_task, localhost);
+			}
 		}
 		MSG_process_sleep(0.5);
 

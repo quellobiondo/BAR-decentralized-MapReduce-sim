@@ -56,7 +56,7 @@ int main (int argc, char* argv[])
 		strncpy(platform_file, argv[3], MAX_FILE_NAME_LENGTH);
 	}else{
 		strncpy(platform_file, "platforms/g5k.xml", MAX_FILE_NAME_LENGTH);
-		strncpy(deploy_file, "deployments/Cluster-100.deploy.xml", MAX_FILE_NAME_LENGTH);
+		strncpy(deploy_file, "deployments/Cluster-10.deploy.xml", MAX_FILE_NAME_LENGTH);
 		strncpy(conf_file, "configurations/sum.conf", MAX_FILE_NAME_LENGTH);
 	}
 
