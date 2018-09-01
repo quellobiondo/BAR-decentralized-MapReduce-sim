@@ -22,21 +22,25 @@ def create_result_table(filename, header):
     return table
 
 def process_trace(paje_tracefile):
-    result = subprocess.check_output(["pj_dump", "--ignore-incomplete-links", paje_tracefile], universal_newlines=True)
     state = []
     variable = []
     container = []
     link = []
 
-    for line in io.StringIO(result):
-        if "State" in line:
-            state.append(line)
-        elif "Variable" in line:
-            variable.append(line)
-        elif "Link" in line:
-            link.append(line)
-        elif "Container" in line:
-            container.append(line)
+    try:
+        result = subprocess.check_output(["pj_dump", "--ignore-incomplete-links", paje_tracefile], universal_newlines=True)
+    
+        for line in io.StringIO(result):
+            if "State" in line:
+                state.append(line)
+            elif "Variable" in line:
+                variable.append(line)
+            elif "Link" in line:
+                link.append(line)
+            elif "Container" in line:
+                container.append(line)
+    except Exception as e:
+        print("Exception while reading the Pajé trace ", e)    
 
     return state, variable, container, link
 
@@ -63,7 +67,6 @@ def process_computing_time(event_logs):
 
     map_end_found, reduce_start_found, reduce_end_found = False, False, False 
 
-    print(event_logs[0])
     for log in event_logs:
         if((not map_end_found) and map_end_matcher.match(log)):
             map_end = float(log.split(",")[3]) 
@@ -109,8 +112,9 @@ class WorkerThread(threading.Thread):
         topology_dir_name = "%s-%d" % (self.topology_type, self.topology_number_of_nodes)
         
         for trace in get_traces(topology_dir_name):
-            platform, byzantines, configuration = os.path.splitext(trace)[0].split("-")
+            platform, byzantines, configuration, seed = os.path.splitext(trace)[0].split("-")
             byzantines = int(byzantines)
+            seed = int(seed)
 
             print("Processing trace for platform: %s, byz: %d, config: %s" %(platform, byzantines, configuration))
             state, variable, container, link = process_trace("%s/%s" % (topology_dir_name, trace))
@@ -126,7 +130,8 @@ class WorkerThread(threading.Thread):
                 'map_duration': map_duration, 
                 'reduce_duration': reduce_duration, 
                 'total_duration': total_duration, 
-                'configuration': configuration
+                'configuration': configuration,
+                'seed': seed
             })
             
             power_times = process_computing_resources(variable)
@@ -139,15 +144,16 @@ class WorkerThread(threading.Thread):
                         'byzantines': byzantines, 
                         'power': power_time['power'], 
                         'time': power_time['time'], 
-                        'configuration': configuration
+                        'configuration': configuration,
+                        'seed': seed
                     })
 
 def main():
     computing_time_file="completion_time.csv"
     computing_resources_file="cpu_usage.csv"
 
-    time_table = create_result_table(computing_time_file, "Topology, NumberOfNodes, Platform, Byzantine, MapDuration, ReduceDuration, TotalDuration, Config")
-    resources_table = create_result_table(computing_resources_file, "Topology, NumberOfNodes, Platform, Byzantine, Power, Time, Config")
+    time_table = create_result_table(computing_time_file, "Topology, NumberOfNodes, Platform, Byzantine, MapDuration, ReduceDuration, TotalDuration, Config, Seed")
+    resources_table = create_result_table(computing_resources_file, "Topology, NumberOfNodes, Platform, Byzantine, Power, Time, Config, Seed")
 
     time_queue = queue.Queue()
     resource_queue = queue.Queue()
@@ -167,13 +173,13 @@ def main():
 
     while not time_queue.empty():
         time_result = time_queue.get()
-        time_table.write("%s, %d, %s, %d, %f, %f, %f, %s\n" % (time_result['type'], time_result['number_of_nodes'], time_result['platform'], time_result['byzantines'], 
-            time_result['map_duration'], time_result['reduce_duration'], time_result['total_duration'], time_result['configuration']))    
+        time_table.write("%s, %d, %s, %d, %f, %f, %f, %s, %d\n" % (time_result['type'], time_result['number_of_nodes'], time_result['platform'], time_result['byzantines'], 
+            time_result['map_duration'], time_result['reduce_duration'], time_result['total_duration'], time_result['configuration'], time_result['seed']))    
 
     while not resource_queue.empty():
         resource_result = resource_queue.get()
-        resources_table.write("%s, %d, %s, %d, %f, %f, %s\n" % (resource_result['type'], resource_result['number_of_nodes'], resource_result['platform'], resource_result['byzantines'], 
-            resource_result['power'], resource_result['time'], resource_result['configuration'])) 
+        resources_table.write("%s, %d, %s, %d, %f, %f, %s, %d\n" % (resource_result['type'], resource_result['number_of_nodes'], resource_result['platform'], resource_result['byzantines'], 
+            resource_result['power'], resource_result['time'], resource_result['configuration'], resource_result['seed'])) 
 
     time_table.close()
     resources_table.close()
