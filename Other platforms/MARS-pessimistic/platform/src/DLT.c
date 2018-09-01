@@ -1,10 +1,3 @@
-/*
- * DLT.c
- *
- *  Created on: 16 giu 2018
- *      Author: Alberto Zirondelli
- */
-
 #include "DLT.h"
 #include <stdlib.h>
 #include <stdio.h>
