@@ -1,0 +1,30 @@
+<?xml version='1.0'?>
+<!DOCTYPE platform SYSTEM "http://simgrid.gforge.inria.fr/simgrid.dtd">
+<platform version="3">
+	<process host="graphene-1.nancy.grid5000.fr" function="master"/>
+	<process host="graphene-2.nancy.grid5000.fr" function="worker"/>
+	<process host="graphene-3.nancy.grid5000.fr" function="worker"/>
+	<process host="graphene-4.nancy.grid5000.fr" function="worker"/>
+	<process host="graphene-5.nancy.grid5000.fr" function="worker"/>
+	<process host="graphene-6.nancy.grid5000.fr" function="worker"/>
+	<process host="graphene-7.nancy.grid5000.fr" function="worker"/>
+	<process host="graphene-8.nancy.grid5000.fr" function="worker"/>
+	<process host="graphene-9.nancy.grid5000.fr" function="worker"/>
+	<process host="graphene-10.nancy.grid5000.fr" function="worker"/>
+	<process host="graphene-11.nancy.grid5000.fr" function="worker"/>
+	<process host="graphene-12.nancy.grid5000.fr" function="worker"/>
+	<process host="griffon-0.nancy.grid5000.fr" function="worker"/>
+	<process host="griffon-1.nancy.grid5000.fr" function="worker"/>
+	<process host="griffon-2.nancy.grid5000.fr" function="worker"/>
+	<process host="griffon-3.nancy.grid5000.fr" function="worker"/>
+	<process host="griffon-4.nancy.grid5000.fr" function="worker"/>
+	<process host="griffon-5.nancy.grid5000.fr" function="worker"/>
+	<process host="griffon-6.nancy.grid5000.fr" function="worker"/>
+	<process host="griffon-7.nancy.grid5000.fr" function="worker"/>
+	<process host="griffon-8.nancy.grid5000.fr" function="worker"/>
+	<process host="griffon-9.nancy.grid5000.fr" function="worker"/>
+	<process host="griffon-10.nancy.grid5000.fr" function="worker"/>
+	<process host="griffon-11.nancy.grid5000.fr" function="worker"/>
+	<process host="griffon-12.nancy.grid5000.fr" function="worker"/>
+	<process host="griffon-13.nancy.grid5000.fr" function="worker"/>
+</platform>

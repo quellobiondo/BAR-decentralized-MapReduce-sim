@@ -1,0 +1,472 @@
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include "common.h"
+#include "worker.h"
+#include "dfs.h"
+
+XBT_LOG_EXTERNAL_DEFAULT_CATEGORY(msg_test);
+
+static FILE* tasks_log;
+
+static void print_config(void);
+static void print_stats(void);
+static int is_straggler(msg_host_t worker);
+static double task_time_elapsed(msg_task_t task);
+static void set_speculative_tasks(msg_host_t worker);
+static size_t send_scheduler_task(enum phase_e phase, size_t wid);
+static void update_stats(enum task_type_e task_type);
+static void send_task(enum phase_e phase, size_t tid, size_t data_src,
+		size_t wid);
+char* task_type_string(enum task_type_e task_type);
+static void finish_all_task_copies(task_info_t ti);
+static int enough_result_confirmation(task_info_t ti);
+static int number_of_task_replicas();
+
+/** @brief  Main master function. */
+int master(int argc, char* argv[]) {
+	heartbeat_t heartbeat;
+	msg_error_t status;
+	msg_host_t worker;
+	msg_task_t msg = NULL;
+	size_t wid;
+	task_info_t ti;
+
+	print_config();
+	XBT_INFO("JOB BEGIN");
+	XBT_INFO(" ");
+
+	TRACE_host_state_declare("MAP");
+	TRACE_host_state_declare("REDUCE");
+
+	TRACE_host_state_declare_value("MAP", "START", "0.7 0.7 0.7");
+	TRACE_host_state_declare_value("MAP", "END", "0.7 0.7 0.7");
+	TRACE_host_state_declare_value("REDUCE", "START", "0.1 0.7 0.1");
+	TRACE_host_state_declare_value("REDUCE", "END", "0.1 0.7 0.1");
+
+	tasks_log = fopen("tasks.csv", "w");
+	fprintf(tasks_log, "task_id,phase,worker_id,time,action,shuffle_end\n");
+
+	// while we have at least a task pending (MAP/REDUCE)
+	while (job.tasks_pending[MAP] + job.tasks_pending[REDUCE] > 0) {
+		// TODO this process have to be blocked for a while to emulate the blockchain
+
+		msg = NULL;
+		status = receive(&msg, MASTER_MAILBOX);
+		if (status == MSG_OK) {
+			worker = MSG_task_get_source(msg);
+			wid = get_worker_id(worker);
+
+			if (message_is(msg, SMS_HEARTBEAT)) {
+				heartbeat = &job.heartbeats[wid];
+
+				if (is_straggler(worker)) {
+					set_speculative_tasks(worker);
+				}
+				//TODO to check that in this way we don't assign to the stragglers too many tasks
+
+				// let's assign to this worker its task to execute (map/reduce) for all the availables slots
+				if (heartbeat->slots_av[MAP] > 0)
+					send_scheduler_task(MAP, wid);
+
+				if (heartbeat->slots_av[REDUCE] > 0)
+					send_scheduler_task(REDUCE, wid);
+
+			} else if (message_is(msg, SMS_TASK_DONE_CORRECT)) {
+				ti = (task_info_t) MSG_task_get_data(msg);
+
+				// Received a correct result from a correct node
+
+				// increment result confirmations
+				job.task_confirmations[ti->phase][ti->id]++;
+
+				if (enough_result_confirmation(ti)){
+					// mark that task as done and finish everything
+					// task finished, clean up and communicate
+					if (job.task_status[ti->phase][ti->id] != T_STATUS_DONE) {
+						job.task_status[ti->phase][ti->id] = T_STATUS_DONE;
+
+						finish_all_task_copies(ti); // pre-emption
+						job.tasks_pending[ti->phase]--;
+						if (job.tasks_pending[ti->phase] <= 0) {
+							XBT_INFO(" ");
+							XBT_INFO("%s PHASE DONE",
+									(ti->phase == MAP ? "MAP" : "REDUCE"));
+							XBT_INFO(" ");
+							TRACE_host_set_state(MSG_host_get_name(MSG_host_self()), (ti->phase == MAP ? "MAP" : "REDUCE"), "END");
+						}
+					}
+					xbt_free_ref(&ti);
+				}
+			} else if (message_is(msg, SMS_TASK_DONE_BYZANTINE)) {
+				ti = (task_info_t) MSG_task_get_data(msg);
+
+				// Received an incorrect result from a byznatine node
+				// Don't do nothing, it will be re-scheduled at the next heartbeat
+				job.task_byzantine_confirmations[ti->phase][ti->id]++;
+				if(job.task_status[ti->phase][ti->id] == T_STATUS_TIP){
+					job.task_status[ti->phase][ti->id] = T_STATUS_PENDING; // to re-schedule
+				}
+			}
+			MSG_task_destroy(msg);
+		}
+	}
+
+	fclose(tasks_log);
+
+	job.finished = 1;
+
+	print_config();
+	print_stats();
+	XBT_INFO("JOB END");
+
+	return 0;
+}
+
+/** @brief  Print the job configuration. */
+static void print_config(void) {
+	XBT_INFO("JOB CONFIGURATION:");
+	XBT_INFO("slots: %d map, %d reduce", config.slots[MAP],
+			config.slots[REDUCE]);
+	XBT_INFO("chunk replicas: %d", config.chunk_replicas);
+	XBT_INFO("chunk size: %.0f MB", config.chunk_size / 1024 / 1024);
+	XBT_INFO("input chunks: %d", config.chunk_count);
+	XBT_INFO("input size: %d MB",
+			config.chunk_count * (int )(config.chunk_size / 1024 / 1024));
+	XBT_INFO("maps: %d", config.amount_of_tasks[MAP]);
+	XBT_INFO("reduces: %d", config.amount_of_tasks[REDUCE]);
+	XBT_INFO("workers: %d", config.number_of_workers);
+	XBT_INFO("grid power: %g flops", config.grid_cpu_power);
+	XBT_INFO("average power: %g flops/s", config.grid_average_speed);
+	XBT_INFO("heartbeat interval: %ds", config.heartbeat_interval);
+	XBT_INFO("byzantine: %d", config.byzantine);
+	XBT_INFO(" ");
+}
+
+/** @brief  Print job statistics. */
+static void print_stats(void) {
+	XBT_INFO("JOB STATISTICS:");
+	XBT_INFO("local maps: %d", stats.map_local);
+	XBT_INFO("non-local maps: %d", stats.map_remote);
+	XBT_INFO("speculative maps (local): %d", stats.map_spec_l);
+	XBT_INFO("speculative maps (remote): %d", stats.map_spec_r);
+	XBT_INFO("total non-local maps: %d", stats.map_remote + stats.map_spec_r);
+	XBT_INFO("total speculative maps: %d", stats.map_spec_l + stats.map_spec_r);
+	XBT_INFO("normal reduces: %d", stats.reduce_normal);
+	XBT_INFO("speculative reduces: %d", stats.reduce_spec);
+	XBT_INFO("reduces with local map-output fetch: %d", stats.reduce_local_map_result);
+	XBT_INFO("reduces with remote map-output fetch: %d", stats.reduce_remote_map_result);
+	XBT_INFO(" ");
+}
+
+/**
+ * @brief  Checks if a worker is a straggler.
+ * @param  worker  The worker to be probed.
+ * @return 1 if true, 0 if false.
+ */
+static int is_straggler(msg_host_t worker) {
+	int task_count;
+	size_t wid;
+
+	wid = get_worker_id(worker);
+
+	/*
+	 * Number of tasks currently executed (number of slots per node - slots available = slot occupied = task currently executed)
+	 */
+	task_count = (config.slots[MAP] + config.slots[REDUCE])
+			- (job.heartbeats[wid].slots_av[MAP]
+					+ job.heartbeats[wid].slots_av[REDUCE]);
+
+	// TODO: modify this stupid rule...
+	if ((MSG_get_host_speed(worker) < config.grid_average_speed ||  job.byzantine_flag[wid]) && task_count > 0)
+		return TRUE;
+
+	return FALSE;
+}
+
+/*
+ *
+ * BYZANTINE PARAMETERS SECTION
+ *
+ */
+
+/**
+ * @brief Tell if we have enough replicas of the ti result to be sure that we are BFT
+ *
+ * Other strategies are possible, like replication to be fault-tolerant
+ */
+static int enough_result_confirmation(task_info_t ti){
+	int threshold_BFT = config.byzantine + 1;
+	return min(config.number_of_workers, threshold_BFT) <= job.task_confirmations[ti->phase][ti->id];
+}
+
+/*
+ * Tell how many replicas do you want for every task
+ * The replicas are considered as different nodes
+ * The replicas are not to solve the stragglers (mainly)
+ *
+ * Improvement idea: consider also the failures like in MOON?
+ */
+static int number_of_task_replicas(){
+	int necessary_replicas_to_be_BFT = config.byzantine + 1;
+	return min(config.number_of_workers, necessary_replicas_to_be_BFT);
+}
+
+/**
+ * @brief  Returns for how long a task is running.
+ * @param  task  The task to be probed.
+ * @return The amount of seconds since the beginning of the computation.
+ */
+static double task_time_elapsed(msg_task_t task) {
+	task_info_t ti;
+
+	ti = (task_info_t) MSG_task_get_data(task);
+
+	double compute_duration = MSG_task_get_compute_duration(task);
+	// return compute_duration;
+	double remaining_duration = MSG_task_get_remaining_computation(task);
+	double host_speed = MSG_get_host_speed(config.workers[ti->wid]);
+	return (compute_duration - remaining_duration) / host_speed;
+}
+
+/**
+ * @brief  Mark the tasks of a straggler as possible speculative tasks.
+ * @param  worker  The straggler worker.
+ */
+static void set_speculative_tasks(msg_host_t worker) {
+	size_t tid;
+	size_t wid;
+	int phases[2]; phases[0] = MAP; phases[1] = REDUCE;
+	int phase_index, phase;
+	int timeout_phases[2]; timeout_phases[0] = TRIGGER_TIMEOUT_SPECULATIVE_MAP; timeout_phases[1] = TRIGGER_TIMEOUT_SPECULATIVE_REDUCE;
+
+	wid = get_worker_id(worker);
+
+	// mark all the tasks of the straggler node as available for speculative tasks in case they have timeouted.
+	for(phase_index = 0; phase_index < 2; phase_index++){
+		phase = phases[phase_index];
+
+		if (job.heartbeats[wid].slots_av[phase] < config.slots[phase]) {
+			for (tid = 0; tid < config.amount_of_tasks[phase]; tid++) {
+				if (job.task_list[phase][tid][wid] != NULL && job.task_status[phase][tid] == T_STATUS_TIP) {
+					//the task has to be already assigned to the straggler and it has to be in the running phase
+					double time_elapsed = task_time_elapsed(job.task_list[phase][tid][wid]);
+					if (time_elapsed > timeout_phases[phase]) {
+						job.task_status[phase][tid] = T_STATUS_TIP_SLOW;
+					}
+				}
+			}
+		}
+	}
+}
+
+
+static size_t send_scheduler_task(enum phase_e phase, size_t wid) {
+	// it's the user scheduler that decides which task to execute
+	size_t tid = user.scheduler_f(phase, wid);
+
+	if (tid == NONE) {
+		return tid;
+	}
+
+	enum task_type_e task_type = get_task_type(phase, tid, wid);
+	size_t sid = NONE; // source of the chunk
+
+	if (task_type == LOCAL || task_type == LOCAL_SPEC) {
+		sid = wid;
+	} else if (task_type == REMOTE || task_type == REMOTE_SPEC) {
+		sid = find_random_chunk_owner(tid);
+	}
+
+	XBT_INFO("%s %zu assigned to %s %s", (phase == MAP ? "map" : "reduce"), tid,
+			MSG_host_get_name(config.workers[wid]),
+			task_type_string(task_type));
+
+	send_task(phase, tid, sid, wid);
+
+	update_stats(task_type);
+
+	return tid;
+}
+
+/*
+ * @brief Tell to the scheduler which type is the task that it is processing
+ *		  The type is different for MAP and REDUCE tasks
+ *		  MAP -> LOCAL, REMOTE, LOCAL_SPEC, REMOTE_SPEC
+ *		  REDUCE -> NORMAL, SPECULATIVE
+ *		  To suggest the type of execution, it uses the "tip" from the job status.
+ *		  - PENDING -> It means no issues
+ *		  - SLOW -> Requires a speculative task
+ *		  - COMPLETED -> No job to do here
+ */
+enum task_type_e get_task_type(enum phase_e phase, size_t tid, size_t wid) {
+	enum task_status_e task_status = job.task_status[phase][tid];
+
+	switch (phase) {
+	case MAP:
+		switch (task_status) {
+		case T_STATUS_PENDING:
+			return chunk_owner[tid][wid] ? LOCAL : REMOTE;
+
+		case T_STATUS_TIP_SLOW:
+			return chunk_owner[tid][wid] ? LOCAL_SPEC : REMOTE_SPEC;
+
+		case T_STATUS_TIP:
+			return NO_TASK;
+
+		case T_STATUS_DONE:
+			return NO_TASK;
+
+		default:
+			xbt_die("Non treated task status: %d", task_status);
+		}
+		break;
+	case REDUCE:
+		switch (task_status) {
+		case T_STATUS_PENDING:
+			return NORMAL;
+
+		case T_STATUS_TIP_SLOW:
+			return SPECULATIVE;
+
+		case T_STATUS_TIP:
+			return NO_TASK;
+
+		case T_STATUS_DONE:
+			return NO_TASK;
+
+		default:
+			xbt_die("Non treated task status: %d", task_status);
+		}
+		break;
+	}
+	xbt_die("Non treated phase: %d", phase);
+}
+
+/**
+ * @brief  Send a task to a worker.
+ * @param  phase     The current job phase.
+ * @param  tid       The task ID.
+ * @param  data_src  The ID of the DataNode that owns the task data.
+ * @param  wid       The destination worker id.
+ */
+static void send_task(enum phase_e phase, size_t tid, size_t data_src,
+		size_t wid) {
+	char mailbox[MAILBOX_ALIAS_SIZE];
+	double cpu_required = 0.0;
+	msg_task_t task = NULL;
+	task_info_t task_info;
+
+	// for fault-tolerance we don't want to reassign a task to the same node
+	xbt_assert(job.task_list[phase][tid][wid] == NULL);
+
+	cpu_required = user.task_cost_f(phase, tid, wid);
+
+	task_info = xbt_new(struct task_info_s, 1);
+	task = MSG_task_create(SMS_TASK, cpu_required, 0.0, (void*) task_info);
+
+	task_info->phase = phase;
+	task_info->id = tid;
+	task_info->src = data_src;
+	task_info->wid = wid;
+	task_info->task = task;
+	task_info->shuffle_end = 0.0;
+
+	// for tracing purposes...
+	MSG_task_set_category(task, (phase == MAP ? "MAP" : "REDUCE"));
+
+	job.task_list[phase][tid][wid] = task;
+
+	if (job.task_status[phase][tid] == T_STATUS_TIP_SLOW){
+		job.task_replicas_instances[phase][tid]++;
+	}else{
+		job.task_instances[phase][tid]++;
+		if(job.task_instances[phase][tid] >= number_of_task_replicas() + job.task_byzantine_confirmations[phase][tid])
+			job.task_status[phase][tid] = T_STATUS_TIP;
+	}
+
+	job.heartbeats[wid].slots_av[phase]--; //okay, it just tell that a slot now is occupied
+
+	fprintf(tasks_log, "%d_%zu_%lu,%s,%zu,%.3f,START,\n", phase, tid, wid,
+			(phase == MAP ? "MAP" : "REDUCE"), wid, MSG_get_clock());
+	TRACE_host_set_state(MSG_host_get_name(MSG_host_self()), (phase == MAP ? "MAP" : "REDUCE"), "START");
+
+#ifdef VERBOSE
+	XBT_INFO ("TX: %s > %s", SMS_TASK, MSG_host_get_name (config.workers[wid]));
+#endif
+
+	sprintf(mailbox, TASKTRACKER_MAILBOX, wid);
+	xbt_assert(MSG_task_send(task, mailbox) == MSG_OK, "ERROR SENDING MESSAGE");
+}
+
+static void update_stats(enum task_type_e task_type) {
+	switch (task_type) {
+	case LOCAL:
+		stats.map_local++;
+		break;
+
+	case REMOTE:
+		stats.map_remote++;
+		break;
+
+	case LOCAL_SPEC:
+		stats.map_spec_l++;
+		break;
+
+	case REMOTE_SPEC:
+		stats.map_spec_r++;
+		break;
+
+	case NORMAL:
+		stats.reduce_normal++;
+		break;
+
+	case SPECULATIVE:
+		stats.reduce_spec++;
+		break;
+
+	default:
+		return;
+	}
+}
+
+char* task_type_string(enum task_type_e task_type) {
+	switch (task_type) {
+	case REMOTE:
+		return "(non-local)";
+
+	case LOCAL_SPEC:
+	case SPECULATIVE:
+		return "(speculative)";
+
+	case REMOTE_SPEC:
+		return "(non-local, speculative)";
+
+	default:
+		return "";
+	}
+}
+
+/**
+ * @brief  Kill all copies of a task.
+ * @param  ti  The task information of any task instance.
+ */
+static void finish_all_task_copies(task_info_t ti) {
+	int i;
+	int phase = ti->phase;
+	size_t tid = ti->id;
+
+	for (i = 0; i < config.number_of_workers; i++) {
+		if (job.task_list[phase][tid][i] != NULL) {
+			MSG_task_cancel(job.task_list[phase][tid][i]);
+
+			//FIXME: MSG_task_destroy (job.task_list[phase][tid][i]);
+			//job.task_list[phase][tid][i] = NULL;
+			fprintf(tasks_log, "%d_%zu_%d,%s,%zu,%.3f,END,%.3f\n", ti->phase,
+					tid, i, (ti->phase == MAP ? "MAP" : "REDUCE"), ti->wid,
+					MSG_get_clock(), ti->shuffle_end);
+		}
+	}
+}
+
+// vim: set ts=8 sw=4:
