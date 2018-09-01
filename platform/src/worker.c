@@ -48,12 +48,13 @@ int worker(int argc, char* argv[]) {
 	/* Spawn a process to exchange data with other workers. */
 	MSG_process_create("data-node", data_node, NULL, me);
 	/* Start sending heartbeat signals to the master node. */
+
+	job.worker_active_count++;
+
 	heartbeat();
 
 	sprintf(mailbox, DATANODE_MAILBOX, get_worker_id(me));
 	send_sms(SMS_FINISH, mailbox);
-	//sprintf(mailbox, TASKTRACKER_MAILBOX, get_worker_id(me));
-	//send_sms(SMS_FINISH, mailbox);
 
 	return 0;
 }
@@ -77,16 +78,19 @@ static int listen(int argc, char* argv[]) {
 	char mailbox_reduce[MAILBOX_ALIAS_SIZE];
 	char mailbox_completed[MAILBOX_ALIAS_SIZE];
 
+	MSG_mailbox_set_async(mailbox_map);
+	MSG_mailbox_set_async(mailbox_reduce);
+
 	msg_error_t status;
 	msg_host_t localhost;
 	msg_task_t current_task = NULL;
 	task_info_t ti;
 	size_t localhost_id;
 
-	xbt_queue_t map_tasks_queue = xbt_queue_new(config.amount_of_tasks[MAP], sizeof(msg_task_t));
-	xbt_queue_t reduce_tasks_queue = xbt_queue_new(config.amount_of_tasks[REDUCE], sizeof(msg_task_t));
-	int map_queue_size = 0;
-	int reduce_queue_size = 0;
+	//xbt_queue_t map_tasks_queue = xbt_queue_new(config.amount_of_tasks[MAP], sizeof(msg_task_t));
+	//xbt_queue_t reduce_tasks_queue = xbt_queue_new(config.amount_of_tasks[REDUCE], sizeof(msg_task_t));
+	//int map_queue_size = 0;
+	//int reduce_queue_size = 0;
 
 	localhost = MSG_host_self();
 	localhost_id = get_worker_id(localhost);
@@ -96,22 +100,34 @@ static int listen(int argc, char* argv[]) {
 	sprintf(mailbox_reduce, REDUCE_TASKTRACKER_MAILBOX, localhost_id);
 
 	while (!job.finished) {
-		current_task = NULL;
 
 		if(MSG_task_listen(mailbox_completed)){
+			current_task = NULL;
+
 			status = receive(&current_task, mailbox_completed);
 
 			xbt_assert(status == MSG_OK);
 
-			if (message_is(current_task, SMS_TASK_DONE)) {
+			if (message_is(current_task, SMS_TASK_DONE_CORRECT)) {
 				ti = (task_info_t) MSG_task_get_data(current_task);
 
 				capacity[ti->phase][localhost_id]++;
+
+				if(job.byzantine_flag[localhost_id]){
+					send(SMS_TASK_DONE_BYZANTINE, 0.0, 0.0, ti, DLT_MAILBOX);
+				}else{
+					send(SMS_TASK_DONE_CORRECT, 0.0, 0.0, ti, DLT_MAILBOX);
+				}
 			} else {
 				XBT_WARN("Received unexpected message");
 			}
 		}
-		if(MSG_task_listen(mailbox_map)){
+
+		/*
+		 *
+		 if(MSG_task_listen(mailbox_map)){
+			current_task = NULL;
+
 			// there is a MAP task
 			status = receive(&current_task, mailbox_map);
 
@@ -124,8 +140,18 @@ static int listen(int argc, char* argv[]) {
 				XBT_WARN("Received unexpected message");
 			}
 		}
+		*/
+		while(capacity[MAP][localhost_id] > 0 && w_queue_workers[localhost_id].size_queue_map > 0){
+			xbt_queue_pop(w_queue_workers[localhost_id].map_tasks_queue, &current_task);
+			w_queue_workers[localhost_id].size_queue_map--;
+			capacity[MAP][localhost_id]--;
+			MSG_process_create("compute", compute, current_task, localhost);
+		}
+/*
 		if(MSG_task_listen(mailbox_reduce)){
-			// there is a MAP task
+			current_task = NULL;
+
+			// there is a REDUCE task
 			status = receive(&current_task, mailbox_reduce);
 
 			xbt_assert(status == MSG_OK);
@@ -137,38 +163,19 @@ static int listen(int argc, char* argv[]) {
 				XBT_WARN("Received unexpected message");
 			}
 		}
-		while(capacity[MAP][localhost_id] > 0 && map_queue_size > 0){
-			xbt_queue_pop(map_tasks_queue, &current_task);
-			map_queue_size--;
-			capacity[MAP][localhost_id]--;
-			if(job.byzantine_flag[localhost_id]){
-				// I am byzantine so misbehave
-				// the misbehavior is to do nothing...
-				capacity[MAP][localhost_id]++;
-				XBT_INFO("-> is acting maliciously during the MAP phase");
-			}else{
-				MSG_process_create("compute", compute, current_task, localhost);
-			}
-		}
-		while(capacity[REDUCE][localhost_id] > 0 && reduce_queue_size > 0){
-			xbt_queue_pop(reduce_tasks_queue, &current_task);
-			reduce_queue_size--;
+*/
+		while(capacity[REDUCE][localhost_id] > 0 && w_queue_workers[localhost_id].size_queue_reduce > 0){
+			xbt_queue_pop(w_queue_workers[localhost_id].reduce_tasks_queue, &current_task);
+			w_queue_workers[localhost_id].size_queue_reduce--;
 			capacity[REDUCE][localhost_id]--;
-			if(job.byzantine_flag[localhost_id]){
-				// I am byzantine so misbehave
-				// the misbehavior is to do nothing...
-				capacity[REDUCE][localhost_id]++;
-				XBT_INFO("-> is acting maliciously during the REDUCE phase");
-			}else{
-				MSG_process_create("compute", compute, current_task, localhost);
-			}
+			MSG_process_create("compute", compute, current_task, localhost);
 		}
 		MSG_process_sleep(0.5);
 
 	}
 
-	xbt_queue_free(&map_tasks_queue);
-	xbt_queue_free(&reduce_tasks_queue);
+	xbt_queue_free(&w_queue_workers[localhost_id].map_tasks_queue);
+	xbt_queue_free(&w_queue_workers[localhost_id].reduce_tasks_queue);
 
 	return 0;
 }
@@ -238,9 +245,8 @@ static int compute(int argc, char* argv[]) {
 
 	// TODO: update, send just to the blockchain
 	if (!job.finished) {
-		send(SMS_TASK_DONE, 0.0, 0.0, ti, DLT_MAILBOX);
 		sprintf(mailbox, COMPLETED_TASKTRACKER_MAILBOX, localhost_id);
-		send(SMS_TASK_DONE, 0.0, 0.0, ti, mailbox);
+		send(SMS_TASK_DONE_CORRECT, 0.0, 0.0, ti, mailbox);
 	}
 
 	return 0;

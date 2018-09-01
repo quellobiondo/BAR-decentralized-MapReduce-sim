@@ -1,24 +1,22 @@
-/* Copyright (c) 2012. MRSG Team. All rights reserved. */
-
-/* This file is part of MRSG.
-
- MRSG is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
-
- MRSG is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
-
- You should have received a copy of the GNU General Public License
- along with MRSG.  If not, see <http://www.gnu.org/licenses/>. */
-
 #include "scheduling.h" // get_task_type
 #include "common.h"
 
 XBT_LOG_EXTERNAL_DEFAULT_CATEGORY(msg_test); // @suppress("Unused variable declaration in file scope")
+
+
+int number_max_speculative_copies (enum phase_e phase, size_t tid) {
+	// as to have max 2f+1 replicas
+	int max_number_of_replicas = config.byzantine + 1; // Standard
+
+	// if we have received byzantine replies they increase the number of tasks we need
+	max_number_of_replicas += job.task_byzantine_confirmations[phase][tid];
+
+	if(job.task_status[phase][tid] == T_STATUS_TIP_SLOW){
+		// if the task is slow we admit stragglers
+		max_number_of_replicas += MAX_SPECULATIVE_COPIES;
+	}
+	return max_number_of_replicas;
+}
 
 /**
  * @brief  Chooses a map or reduce task and send it to a worker.
@@ -68,6 +66,9 @@ size_t choose_default_map_task(size_t wid /*, TODO list of tasks that need to be
 
 		task_type = get_task_type(MAP, map_id, wid);
 
+		int overall_number_of_instances = job.task_instances[MAP][map_id] + job.task_replicas_instances[MAP][map_id];
+		if(overall_number_of_instances >= number_max_speculative_copies(MAP, map_id)) continue;
+
 		if (task_type == LOCAL && job.task_instances[MAP][map_id] < number_of_task_replicas()) {
 			selected_task_id = map_id;
 			break;
@@ -110,6 +111,9 @@ size_t choose_default_reduce_task(size_t wid) {
 		if(job.task_list[REDUCE][reduce_id][wid] != NULL) continue;
 
 		task_type = get_task_type(REDUCE, reduce_id, wid);
+
+		int overall_number_of_instances = job.task_instances[REDUCE][reduce_id] + job.task_replicas_instances[REDUCE][reduce_id];
+		if(overall_number_of_instances >= number_max_speculative_copies(REDUCE, reduce_id)) continue;
 
 		if (task_type == NORMAL && job.task_instances[REDUCE][reduce_id] < number_of_task_replicas()) {
 			selected_task_id = reduce_id;

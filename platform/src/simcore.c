@@ -112,7 +112,7 @@ static msg_error_t run_simulation(const char* platform_file,
  * @param  mr_config_file  The path/name of the configuration file.
  */
 static void init_mr_config(const char* mr_config_file) {
-	srand(12345);
+	srand(config.random_seed);
 	init_config();
 	init_stats();
 	init_job();
@@ -135,6 +135,7 @@ static void read_mr_config_file(const char* file_name) {
 	config.amount_of_tasks[REDUCE] = 1;
 	config.slots[REDUCE] = 2;
 	config.byzantine = 0;
+	config.real_byzantine = -1;
 	config.block_size = 100;
 	config.block_period = 15;
 
@@ -160,10 +161,14 @@ static void read_mr_config_file(const char* file_name) {
 			fscanf(file, "%d", &config.slots[REDUCE]);
 		} else if (strcmp(property, "byzantine") == 0) {
 			fscanf(file, "%d", &config.byzantine);
+		} else if (strcmp(property, "real_byzantine") == 0) {
+					fscanf(file, "%d", &config.real_byzantine);
 		} else if (strcmp(property, "block_period") == 0) {
 			fscanf(file, "%d", &config.block_period);
 		} else if (strcmp(property, "block_size") == 0) {
 			fscanf(file, "%d", &config.block_size);
+		} else if (strcmp(property, "random_seed") == 0) {
+			fscanf(file, "%d", &config.random_seed);
 		} else {
 			printf("Error: Property %s is not valid. (in %s)", property,
 					file_name);
@@ -230,7 +235,11 @@ static void init_config(void) {
 
 	//update the real number of byzantine nodes
 	config.byzantine = config.number_of_workers*config.byzantine/100;
-
+	if(config.real_byzantine != -1) {
+		config.real_byzantine = config.number_of_workers*config.real_byzantine/100;
+	}else{
+		config.real_byzantine = config.byzantine;
+	}
 	wid = 0;
 	config.grid_cpu_power = 0.0;
 	xbt_dynar_foreach (process_list, cursor, process)
@@ -267,6 +276,17 @@ static void init_job(void) {
 	xbt_assert(config.initialized,
 			"init_config has to be called before init_job");
 
+	w_queue_workers = xbt_new(w_queue_worker_t, config.number_of_workers);
+
+	// w_queue_workers = xbt_new(struct w_queues_worker, config.number_of_workers);
+	for(i=0; i<config.number_of_workers; i++){
+		w_queue_workers[i].map_tasks_queue = xbt_queue_new(config.amount_of_tasks[MAP], sizeof(msg_task_t));
+		w_queue_workers[i].size_queue_map = 0;
+		w_queue_workers[i].reduce_tasks_queue = xbt_queue_new(config.amount_of_tasks[REDUCE], sizeof(msg_task_t));
+		w_queue_workers[i].size_queue_reduce = 0;
+	}
+
+	job.worker_active_count = 0;
 	job.finished = 0;
 	job.heartbeats = xbt_new(struct heartbeat_s, config.number_of_workers);
 	for (wid = 0; wid < config.number_of_workers; wid++) {
@@ -274,11 +294,9 @@ static void init_job(void) {
 		job.heartbeats[wid].slots_av[REDUCE] = config.slots[REDUCE];
 	}
 
-	srand(0); //deterministic random seed
-
 	job.byzantine_flag = xbt_new0(int, config.number_of_workers);
 	// assign the byzantine nodes randomly
-	for(i=0; i<config.byzantine; i++){
+	for(i=0; i<config.real_byzantine; i++){
 		byz_index = rand() % config.number_of_workers;
 		if(job.byzantine_flag[byz_index]) {
 			//already assigned byzantine node
@@ -293,9 +311,11 @@ static void init_job(void) {
 	job.tasks_pending[MAP] = config.amount_of_tasks[MAP];
 	job.task_status[MAP] = xbt_new0(int, config.amount_of_tasks[MAP]);
 	job.task_instances[MAP] = xbt_new0(int, config.amount_of_tasks[MAP]);
+
 	job.task_replicas_instances[MAP] = xbt_new0(int,
 			config.amount_of_tasks[MAP]);
 	job.task_confirmations[MAP] = xbt_new0(int, config.amount_of_tasks[MAP]);
+    job.task_byzantine_confirmations[MAP] = xbt_new0(int, config.amount_of_tasks[MAP]);
 	job.task_list[MAP] = xbt_new0(msg_task_t*, config.amount_of_tasks[MAP]);
 	for (i = 0; i < config.amount_of_tasks[MAP]; i++)
 		job.task_list[MAP][i] = xbt_new0(msg_task_t, config.number_of_workers);
@@ -312,6 +332,7 @@ static void init_job(void) {
 			config.amount_of_tasks[REDUCE]);
 	job.task_confirmations[REDUCE] = xbt_new0(int,
 			config.amount_of_tasks[REDUCE]);
+    job.task_byzantine_confirmations[REDUCE] = xbt_new0(int, config.amount_of_tasks[REDUCE]);
 	job.task_list[REDUCE] = xbt_new0(msg_task_t*,
 			config.amount_of_tasks[REDUCE]);
 	for (i = 0; i < config.amount_of_tasks[REDUCE]; i++)
@@ -359,7 +380,13 @@ static void free_global_mem(void) {
 		xbt_free_ref(&map_output_owner[i]);
 	}
 	xbt_free_ref(&map_output_owner);
-
+	/*
+	for(i=0; i<config.number_of_workers; i++){
+		xbt_queue_free(&w_queue_workers[i].map_tasks_queue);
+		xbt_queue_free(&w_queue_workers[i].reduce_tasks_queue);
+	}
+	xbt_free_ref(&w_queue_workers);
+	*/
 	// free config memory
 	xbt_free_ref(&config.workers);
 
@@ -382,6 +409,8 @@ static void free_global_mem(void) {
 		}
 		xbt_free_ref(&job.task_list[phase]);
 	}
+
+	xbt_free_ref(&job.byzantine_flag);
 
 	// job->map_output
 	for (i = 0; i < config.amount_of_tasks[MAP]; i++) {

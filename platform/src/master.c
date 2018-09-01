@@ -1,20 +1,3 @@
-/* Copyright (c) 2012. MRSG Team. All rights reserved. */
-
-/* This file is part of MRSG.
-
- MRSG is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
-
- MRSG is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
-
- You should have received a copy of the GNU General Public License
- along with MRSG.  If not, see <http://www.gnu.org/licenses/>. */
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -29,6 +12,7 @@ static void print_config(void);
 static void print_stats(void);
 static int is_straggler(msg_host_t worker);
 static int task_time_elapsed(msg_task_t task);
+static size_t reschedule_task(enum phase_e phase, size_t tid);
 static void set_speculative_tasks(msg_host_t worker);
 static void send_scheduler_task(enum phase_e phase, size_t wid);
 static void update_stats(enum task_type_e task_type);
@@ -53,6 +37,11 @@ int master(int argc, char* argv[]) {
 	size_t worker_index;
 	msg_process_t DLT_process;
 	int tx_counter;
+
+	// wait for the workers to bootstrap
+	while(job.worker_active_count < config.number_of_workers){
+		MSG_process_sleep(1);
+	}
 
 
 	TRACE_host_state_declare("MAP");
@@ -103,9 +92,19 @@ int master(int argc, char* argv[]) {
 
 					original_msg = block->original_messages[tx_counter];
 
-					if (message_is(original_msg, SMS_TASK_DONE)) {
+					if (message_is(original_msg, SMS_TASK_DONE_CORRECT)) {
 						ti = (task_info_t) MSG_task_get_data(original_msg);
 						processTaskCompletion(ti, worker);
+					} else if (message_is(original_msg, SMS_TASK_DONE_BYZANTINE)) {
+						// need to reschedule this task
+						ti = (task_info_t) MSG_task_get_data(original_msg);
+
+						job.task_byzantine_confirmations[ti->phase][ti->id]++;
+						if(job.task_status[ti->phase][ti->id] == T_STATUS_TIP){
+							job.task_status[ti->phase][ti->id] = T_STATUS_PENDING; // to re-schedule
+						}
+
+						reschedule_task(ti->phase, ti->id);
 					}
 					MSG_task_destroy(original_msg);
 				}
@@ -152,6 +151,8 @@ void processTaskCompletion(task_info_t ti, msg_host_t worker){
 				XBT_INFO(" ");
 				TRACE_host_set_state(MSG_host_get_name(MSG_host_self()), (ti->phase == MAP ? "MAP" : "REDUCE"), "END");
 			}
+
+			finish_all_task_copies(ti);
 		}
 		xbt_free_ref(&ti);
 	}
@@ -160,7 +161,6 @@ void processTaskCompletion(task_info_t ti, msg_host_t worker){
 void scheduleFunction(void){
 	msg_host_t worker;
 	size_t worker_index;
-	size_t index;
 
 	for(worker_index = 0; worker_index < config.number_of_workers; worker_index++){
 		worker = config.workers[worker_index];
@@ -385,6 +385,40 @@ enum task_type_e get_task_type(enum phase_e phase, size_t tid, size_t wid) {
 	xbt_die("Non treated phase: %d", phase);
 }
 
+static size_t reschedule_task(enum phase_e phase, size_t tid){
+	size_t wid = NONE, wid_index = 0;
+	size_t random_index;
+	// rand has been initialized with deterministic seed in simcore.c
+
+	for(wid_index = 0; wid_index < config.number_of_workers; wid_index++){
+		random_index = (rand() + wid_index) % config.number_of_workers;
+		if(job.task_list[phase][tid][random_index] != NULL) continue; // task already executed by this node
+		wid = random_index;
+		break;
+	}
+
+	if(wid == NONE){
+		return wid;
+	}
+	enum task_type_e task_type = get_task_type(phase, tid, wid);
+	size_t sid = NONE; // source of the chunk
+
+	if (task_type == LOCAL || task_type == LOCAL_SPEC) {
+		sid = wid;
+	} else if (task_type == REMOTE || task_type == REMOTE_SPEC) {
+		sid = find_random_chunk_owner(tid);
+	}
+
+	XBT_INFO("%s %zu assigned to %s %s", (phase == MAP ? "map" : "reduce"), tid,
+			MSG_host_get_name(config.workers[wid]),
+			task_type_string(task_type));
+
+	send_task(phase, tid, sid, wid);
+
+	update_stats(task_type);
+	return wid;
+}
+
 /**
  * @brief  Send a task to a worker.
  * @param  phase     The current job phase.
@@ -394,11 +428,9 @@ enum task_type_e get_task_type(enum phase_e phase, size_t tid, size_t wid) {
  */
 static void send_task(enum phase_e phase, size_t tid, size_t data_src,
 		size_t wid) {
-	char mailbox[MAILBOX_ALIAS_SIZE];
 	double cpu_required = 0.0;
 	msg_task_t task = NULL;
 	task_info_t task_info;
-	msg_error_t status;
 
 	// for fault-tolerance we don't want to reassign a task to the same node
 	xbt_assert(job.task_list[phase][tid][wid] == NULL);
@@ -424,7 +456,7 @@ static void send_task(enum phase_e phase, size_t tid, size_t data_src,
 		job.task_replicas_instances[phase][tid]++;
 	}else{
 		job.task_instances[phase][tid]++;
-		if(job.task_instances[phase][tid] >= number_of_task_replicas())
+		if(job.task_instances[phase][tid] >= number_of_task_replicas() + job.task_byzantine_confirmations[phase][tid] )
 			job.task_status[phase][tid] = T_STATUS_TIP;
 	}
 
@@ -434,12 +466,24 @@ static void send_task(enum phase_e phase, size_t tid, size_t data_src,
 
 	XBT_VERB("TX: %s > %s", SMS_TASK, MSG_host_get_name (config.workers[wid]));
 
+	/*
 	switch(phase){
 	case MAP: sprintf(mailbox, MAP_TASKTRACKER_MAILBOX, wid); break;
 	case REDUCE: sprintf(mailbox, REDUCE_TASKTRACKER_MAILBOX, wid); break;
 	}
+	*/
 
-	MSG_task_send(task, mailbox);
+	// MSG_task_send(task, mailbox);
+	switch(phase){
+	case MAP:
+		xbt_queue_push(w_queue_workers[wid].map_tasks_queue, &task);
+		w_queue_workers[wid].size_queue_map++;
+		break;
+	case REDUCE:
+		xbt_queue_push(w_queue_workers[wid].reduce_tasks_queue, &task);
+		w_queue_workers[wid].size_queue_reduce++;
+		break;
+	}
 }
 
 static void update_stats(enum task_type_e task_type) {

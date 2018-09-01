@@ -35,7 +35,8 @@ along with MRSG.  If not, see <http://www.gnu.org/licenses/>. */
 #define SMS_GET_INTER_PAIRS "SMS-GIP"
 #define SMS_HEARTBEAT "SMS-HB"
 #define SMS_TASK "SMS-T"
-#define SMS_TASK_DONE "SMS-TD"
+#define SMS_TASK_DONE_CORRECT "SMS-TD-OK"
+#define SMS_TASK_DONE_BYZANTINE "SMS-TD-BYZ"
 #define SMS_FINISH "SMS-F"
 #define SMS_DLT_BLOCK "SMS-DLT_BLOCK"
 
@@ -94,17 +95,21 @@ struct config_s {
     int            slots[2];
     int            initialized;
     int            byzantine;    // number of byzantine nodes that the system need to tollerate
+    int 		   real_byzantine; // real number of byznatine nodes in the system
     int 		   block_size;   // number of messages per block
     int 		   block_period; // number of seconds between a block and the other
     msg_host_t*    workers;
+    int 		   random_seed;
 } config;
 
 struct job_s {
     int           finished;
+    int 		  worker_active_count;
     int           tasks_pending[2];
     int*          task_instances[2]; //[phase][task_id] -> running tasks
     int*          task_replicas_instances[2]; //[phase][task_id] -> running replicas for tasks
     int*          task_confirmations[2]; //[phase][task_id] -> tasks that completed this task with the same result
+    int* 		  task_byzantine_confirmations[2]; //[phase][task_id] -> confirmations by byzantine attackers
     int*          task_status[2]; //[phase][task_id] -> pending, running, timeout, completed
     msg_task_t**  task_list[2];//[phase][task_id][worker id] -> collect the task descriptions for each task assigned to some node
     size_t**      map_output;//[map_id][reduce_id] -> collect which map has produced which keys and how much data it has produced for that key
@@ -205,6 +210,16 @@ enum task_type_e get_task_type (enum phase_e phase, size_t tid, size_t wid);
 int number_of_task_replicas();
 
 int *capacity[2]; //[PHASE][WORKER] number of free slots in that worker
+
+
+typedef struct w_queues_worker_s {
+	xbt_queue_t map_tasks_queue;
+	xbt_queue_t reduce_tasks_queue;
+	int size_queue_map;
+	int size_queue_reduce;
+} w_queue_worker_t;
+
+w_queue_worker_t*  w_queue_workers; // [worker]
 
 #endif /* !MRSG_COMMON_H */
 

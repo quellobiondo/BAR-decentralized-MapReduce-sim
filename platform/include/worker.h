@@ -32,6 +32,7 @@ typedef struct w_info_s {
  */
 size_t get_worker_id (msg_host_t worker);
 
+
 #endif /* !WORKER_H */
 
 // vim: set ts=8 sw=4:

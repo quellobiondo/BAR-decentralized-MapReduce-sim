@@ -124,7 +124,7 @@ size_t reduce_input_size(size_t rid) {
  * Improvement idea: consider also the failures like in MOON?
  */
 int number_of_task_replicas(){
-	int necessary_replicas_to_be_BFT = 2*config.byzantine + 1;
+	int necessary_replicas_to_be_BFT = config.byzantine + 1;
 	return min(config.number_of_workers, necessary_replicas_to_be_BFT);
 }
 
