@@ -26,7 +26,7 @@ Dependencies
 
 Each experiment run produce a *tracefile.trace*, this are in the [Pajé format](), we need to convert it in csv. 
 
-Preparing the traces
+Preparing the traces manually
 ```
 pj_dump tracefile.trace | grep State > tracefile.state.csv
 pj_dump tracefile.trace | grep Link > tracefile.link.csv
